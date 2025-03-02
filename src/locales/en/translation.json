@@ -1,0 +1,387 @@
+{
+  "general": {
+    "readMore": "Read More",
+    "viewDetails": "View Details",
+    "bookNow": "Book Now",
+    "learnMore": "Learn More",
+    "contactUs": "Contact Us",
+    "send": "Send",
+    "call": "Call",
+    "email": "Email",
+    "address": "Address",
+    "viewAll": "View All",
+    "perDay": "per day",
+    "phone": "Phone"
+  },
+  "navbar": {
+    "home": "Home",
+    "fleet": "Fleet",
+    "services": "Services",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "services": "Services",
+    "contactInfo": "Contact Info",
+    "subscribe": "Subscribe to Our Newsletter",
+    "subscribeText": "Stay updated with our latest offers and news",
+    "subscribeButton": "Subscribe",
+    "copyright": " 2025 AntalyamVip. All rights reserved.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
+  },
+  "home": {
+    "hero": {
+      "title": "Luxury Services for VIP Transportation",
+      "subtitle": "Experience the ultimate in comfort and luxury with our exclusive fleet of VIP vehicles.",
+      "premium": "PREMIUM EXPERIENCE"
+    },
+    "cta": {
+      "viewFleet": "View Our Fleet",
+      "contactUs": "Contact Us"
+    },
+    "featuredCars": {
+      "title": "Featured Vehicles",
+      "subtitle": "Explore our selection of premium vehicles"
+    },
+    "services": {
+      "title": "Our Premium Services",
+      "subtitle": "We offer a range of luxury services tailored to your needs",
+      "chauffeur": {
+        "title": "Chauffeur Service",
+        "description": "Professional drivers at your service 24/7"
+      },
+      "airport": {
+        "title": "Airport Transfer",
+        "description": "Luxury transportation to and from any airport"
+      },
+      "events": {
+        "title": "Special Events",
+        "description": "Make your special day even more memorable"
+      },
+      "corporate": {
+        "title": "Corporate Service",
+        "description": "Impress your clients with premium transportation"
+      }
+    },
+    "whyChooseUs": {
+      "title": "Why Choose VIPCars",
+      "subtitle": "We provide an exceptional luxury experience",
+      "reasons": {
+        "luxury": {
+          "title": "Premium Fleet",
+          "description": "Access to the world's most prestigious vehicles"
+        },
+        "service": {
+          "title": "Exceptional Service",
+          "description": "Dedicated team available 24/7 for your needs"
+        },
+        "convenience": {
+          "title": "Convenient Booking",
+          "description": "Simple and fast booking process"
+        },
+        "safety": {
+          "title": "Safety First",
+          "description": "All vehicles are regularly maintained and inspected"
+        }
+      }
+    },
+    "testimonials": {
+      "title": "What Our Clients Say",
+      "subtitle": "Hear from our satisfied customers"
+    }
+  },
+  "fleet": {
+    "title": "Our VIP Fleet",
+    "subtitle": "Explore our collection of premium VIP vehicles",
+    "categories": {
+      "all": "All",
+      "luxury": "Luxury",
+      "vip": "VIP",
+      "ultraLuxury": "Ultra Luxury"
+    },
+    "features": "Features",
+    "specifications": "Specifications",
+    "year": "Year",
+    "fuelType": "Fuel Type",
+    "seats": "seats",
+    "searchPlaceholder": "Search vehicles...",
+    "filter": "Filter",
+    "noVehicles": "No vehicles found",
+    "adjustSearch": "Try adjusting your search or filter criteria"
+  },
+  "services": {
+    "title": "Our Premium Services",
+    "subtitle": "Experience unparalleled luxury with our comprehensive range of VIP services",
+    "luxuryCar": {
+      "title": "VIP Rental",
+      "description": "Access our exclusive fleet of premium VIP vehicles and experience the perfect blend of luxury, comfort, and prestige."
+    },
+    "chauffeur": {
+      "title": "Professional Chauffeur",
+      "description": "Our professional chauffeurs are trained to provide the highest level of service. Available 24/7, they ensure a comfortable and safe journey while maintaining the utmost discretion and professionalism.",
+      "features": [
+        "Professional, uniformed drivers",
+        "Available 24/7",
+        "Multilingual chauffeurs",
+        "Personalized service"
+      ]
+    },
+    "doorstep": {
+      "title": "Doorstep Delivery",
+      "description": "We deliver and collect your luxury vehicle at your preferred location, whether it's your home, hotel, or the airport."
+    },
+    "airport": {
+      "title": "Airport Transfers",
+      "description": "Arrive in style with our premium airport transfer service, available at all major airports across the country.",
+      "features": [
+        "Flight monitoring",
+        "Meet and greet service",
+        "Luggage assistance",
+        "No waiting time"
+      ]
+    },
+    "wedding": {
+      "title": "Wedding Car Hire",
+      "description": "Make your special day even more memorable with our luxury wedding car service, complete with decorated vehicles."
+    },
+    "corporate": {
+      "title": "Corporate Services",
+      "description": "Impress clients and partners with our corporate luxury car services, perfect for business meetings and events.",
+      "features": [
+        "Corporate accounts",
+        "Roadshow coordination",
+        "Executive transportation",
+        "Confidentiality guaranteed"
+      ]
+    },
+    "longTerm": {
+      "title": "Long Term Rental",
+      "description": "Enjoy special rates and benefits with our long-term luxury car rental options for extended stays or projects."
+    },
+    "insurance": {
+      "title": "Premium Insurance",
+      "description": "Drive with peace of mind knowing you're covered by our comprehensive insurance package included with every rental."
+    },
+    "vip": {
+      "title": "VIP Membership",
+      "description": "Join our exclusive VIP membership program for priority bookings, special discounts, and personalized services."
+    },
+    "process": {
+      "title": "How It Works",
+      "subtitle": "Our simple process ensures a seamless luxury experience from start to finish",
+      "step1": {
+        "title": "Choose Your Vehicle",
+        "description": "Browse our exclusive fleet and select the perfect luxury vehicle for your needs."
+      },
+      "step2": {
+        "title": "Book Online or Call",
+        "description": "Make your reservation through our secure online system or contact our VIP concierge."
+      },
+      "step3": {
+        "title": "Vehicle Delivery",
+        "description": "We deliver your chosen vehicle to your preferred location at the scheduled time."
+      },
+      "step4": {
+        "title": "Enjoy & Return",
+        "description": "Enjoy your luxury experience and return the vehicle or arrange for collection."
+      }
+    },
+    "cta": {
+      "title": "Ready to Experience Luxury?",
+      "description": "Browse our fleet or contact our VIP concierge team to arrange your premium rental.",
+      "viewFleet": "View Our Fleet",
+      "contactUs": "Contact Us"
+    }
+  },
+  "about": {
+    "title": "About AntalyamVip",
+    "subtitle": "Premium VIP transportation services for discerning clients since 2010",
+    "ourStory": {
+      "title": "Our Story",
+      "description": "ALANYAM VIP TRANSFER has been a leading entity in the premium transportation sector since 2010. Our company provides high-end transfer services from Antalya Airport to prestigious accommodation facilities and various destinations in the region, maintaining superior comfort and luxury standards. With our customer-centric business model, specially designed luxury vehicle fleet, and professional driver team, we create a distinctive presence in the industry. Our guests experience flawless service from the moment they are greeted at the airport throughout every stage of their journey. As ALANYAM VIP TRANSFER, we continue to offer customized solutions for our corporate and individual clients in the Antalya region and beyond."
+    },
+    "today": {
+      "description": "Today, we maintain the same dedication to excellence that defined our beginnings, while continuously updating our VIP fleet and enhancing our services to meet the evolving needs of our VIP clientele."
+    },
+    "showroom": "VIP showroom",
+    "yearsOfExcellence": "Years of Excellence",
+    "values": {
+      "title": "Our Core Values",
+      "subtitle": "The principles that guide everything we do",
+      "excellence": {
+        "title": "Excellence",
+        "description": "We are committed to excellence in every aspect of our service, from the quality of our vehicles to the professionalism of our staff.",
+        "point1": "Meticulously maintained vehicles",
+        "point2": "Rigorous quality control",
+        "point3": "Continuous improvement"
+      },
+      "personalization": {
+        "title": "Personalization",
+        "description": "We believe that true luxury lies in personalized service tailored to the unique preferences of each client.",
+        "point1": "Customized rental experiences",
+        "point2": "Dedicated personal concierge",
+        "point3": "Attention to individual needs"
+      },
+      "integrity": {
+        "title": "Integrity",
+        "description": "We operate with complete transparency and honesty, building lasting relationships based on trust and reliability.",
+        "point1": "Clear pricing with no hidden fees",
+        "point2": "Honest communication",
+        "point3": "Ethical business practices"
+      }
+    },
+    "stats": {
+      "title": "Our Success in Services",
+      "subtitle": "The results of our commitment to excellence",
+      "satisfiedClients": {
+        "value": "2,500+",
+        "label": "Satisfied Clients"
+      },
+      "successfulTrips": {
+        "value": "10,000+",
+        "label": "Successful Trips"
+      },
+      "clientRetention": {
+        "value": "100%",
+        "label": "Client Retention"
+      },
+      "customerRating": {
+        "value": "5/5",
+        "label": "Customer Rating"
+      }
+    },
+    "mission": {
+      "title": "Our Mission",
+      "description": "Our mission is to provide the highest quality VIP transportation service to our clients. We aim to exceed every customer's expectations without compromising on safety, comfort, and punctuality."
+    },
+    "vision": {
+      "title": "Our Vision",
+      "description": "As ALANYAM VIP TRANSFER COMPANY, our vision is to provide our passengers with an unforgettable and luxurious travel experience, to raise travel standards, and to be a leader in the industry. By aiming for excellence in every journey, we aim to continuously promote progress and innovation to offer our customers privileged comfort."
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "subtitle": "Get in touch with our team",
+    "info": {
+      "title": "Contact Information",
+      "location": "Address",
+      "address": {
+        "line1": "Antalya Airport",
+        "line2": "Antalya",
+        "line3": "Turkey"
+      },
+      "phone": "0532 113 4125",
+      "phoneNumber": "0532 113 4125",
+      "phoneSupport": "(24/7 VIP Concierge)",
+      "email": "info@alanyamviptransfer.com",
+      "hours": "Monday - Sunday: 24/7",
+      "workDays": "Monday - Friday: 9:00 AM - 8:00 PM",
+      "weekends": "Saturday - Sunday: 10:00 AM - 6:00 PM",
+      "fax": "Fax: 0532 113 4125",
+      "support": "24/7 phone support for VIP clients",
+      "immediate": "Need Immediate Assistance?",
+      "immediateText": "Our VIP concierge team is available 24/7 to assist with urgent requests and special arrangements.",
+      "call": "Call VIP Concierge"
+    },
+    "form": {
+      "title": "Contact Us",
+      "name": "Full Name",
+      "namePlaceholder": "Your name",
+      "email": "Email Address",
+      "emailPlaceholder": "Your email",
+      "phone": "Phone Number",
+      "phonePlaceholder": "Your phone number",
+      "carModel": "Preferred Vehicle",
+      "selectCar": "Select a vehicle",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "message": "Special Requests",
+      "messagePlaceholder": "Any special requirements or additional information...",
+      "submit": "Contact Us",
+      "success": "Thank you for your inquiry. Our VIP concierge team will contact you shortly.",
+      "error": "There was an error sending your message. Please try again."
+    },
+    "map": {
+      "title": "Our Location",
+      "description": "Visit our showroom to explore our exclusive fleet in person"
+    }
+  },
+  "booking": {
+    "title": "Book Your VIP Transfer",
+    "pickupLocation": "Pickup Location",
+    "dropoffLocation": "Dropoff Location",
+    "pickupDate": "Pickup Date",
+    "pickupTime": "Pickup Time",
+    "dropoffDate": "Dropoff Date",
+    "dropoffTime": "Dropoff Time",
+    "passengers": "Passengers",
+    "passenger": "Passenger",
+    "enterLocation": "Enter location",
+    "bookNow": "Book Now",
+    "searchButton": "Search Availability",
+    "successMessage": "Booking successful! We will contact you soon.",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "email": "Email Address",
+    "notes": "Additional Notes"
+  },
+  "bookingResults": {
+    "title": "Booking Results",
+    "summary": "Booking Summary",
+    "pickupLocation": "Pickup Location",
+    "dropoffLocation": "Dropoff Location",
+    "pickupDateTime": "Pickup Date & Time",
+    "dropoffDateTime": "Dropoff Date & Time",
+    "passengers": "Passengers",
+    "availableVehicles": "Available Vehicles",
+    "noVehicles": "No vehicles available for the selected criteria",
+    "selectVehicle": "Select Vehicle",
+    "select": "Select",
+    "selected": "Selected",
+    "confirmButton": "Confirm Booking",
+    "selectVehicleAlert": "Please select a vehicle first",
+    "contactInformation": "Contact Information",
+    "contactDescription": "Please provide your contact information so we can reach you regarding your booking.",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
+    "fullNameRequired": "Full name is required",
+    "phone": "Phone Number",
+    "phonePlaceholder": "Enter your phone number",
+    "phoneRequired": "Phone number is required",
+    "email": "Email Address",
+    "emailPlaceholder": "Enter your email address",
+    "emailRequired": "Valid email address is required",
+    "notes": "Additional Notes",
+    "notesPlaceholder": "Any special requests or information we should know",
+    "requiredFields": "Required fields",
+    "seatsAvailable": "seats",
+    "features": "Features",
+    "perDay": "per day"
+  },
+  "carFeatures": {
+    "leatherinterior": "Leather Interior",
+    "premiumsound": "Premium Sound",
+    "executiveseating": "Executive Seating",
+    "ambientlighting": "Ambient Lighting",
+    "chauffeuroption": "Chauffeur Option",
+    "conferenceseating": "Conference Seating",
+    "wifi": "Wi-Fi",
+    "refrigerator": "Refrigerator",
+    "recliningseats": "Reclining Seats",
+    "panoramicroof": "Panoramic Roof",
+    "premiumentertainment": "Premium Entertainment",
+    "massageseats": "Massage Seats",
+    "mbuxsystem": "MBUX System",
+    "conferencesystem": "Conference System",
+    "extendedlegroom": "Extended Legroom",
+    "privacyglass": "Privacy Glass",
+    "premiumaudio": "Premium Audio",
+    "tabletcontrols": "Tablet Controls",
+    "blackexterior": "Black Exterior",
+    "tintedwindows": "Tinted Windows",
+    "premiuminterior": "Premium Interior",
+    "airsuspension": "Air Suspension"
+  }
+}

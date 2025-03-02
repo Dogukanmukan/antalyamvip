@@ -1,0 +1,410 @@
+{
+  "general": {
+    "readMore": "Devamını Oku",
+    "viewDetails": "Detayları Gör",
+    "bookNow": "Hemen Rezervasyon Yap",
+    "learnMore": "Daha Fazla Bilgi",
+    "contactUs": "Bize Ulaşın",
+    "send": "Gönder",
+    "call": "Ara",
+    "email": "E-posta",
+    "address": "Adres",
+    "viewAll": "Tümünü Gör",
+    "perDay": "günlük",
+    "phone": "Telefon"
+  },
+  "navbar": {
+    "home": "Ana Sayfa",
+    "fleet": "Filomuz",
+    "services": "Hizmetlerimiz",
+    "about": "Hakkımızda",
+    "contact": "İletişim"
+  },
+  "footer": {
+    "quickLinks": "Hızlı Bağlantılar",
+    "services": "Hizmetlerimiz",
+    "contactInfo": "İletişim Bilgileri",
+    "subscribe": "Bültenimize Abone Olun",
+    "subscribeText": "En son tekliflerimiz ve haberlerimizden haberdar olun",
+    "subscribeButton": "Abone Ol",
+    "copyright": " 2025 AntalyamVip. Tüm hakları saklıdır.",
+    "privacyPolicy": "Gizlilik Politikası",
+    "termsOfService": "Kullanım Şartları"
+  },
+  "home": {
+    "hero": {
+      "title": "VIP Taşımacılık için Üstün Hizmet",
+      "subtitle": "Özel VIP araç filomuzla konfor ve lüksün en üst seviyesini deneyimleyin.",
+      "premium": "PREMIUM DENEYİM"
+    },
+    "cta": {
+      "viewFleet": "Filomuzu İnceleyin",
+      "contactUs": "Bize Ulaşın"
+    },
+    "featuredCars": {
+      "title": "Öne Çıkan Araçlar",
+      "subtitle": "Premium araç seçkimizi keşfedin"
+    },
+    "services": {
+      "title": "Premium Hizmetlerimiz",
+      "subtitle": "İhtiyaçlarınıza özel lüks hizmetler sunuyoruz",
+      "chauffeur": {
+        "title": "Şoför Hizmeti",
+        "description": "7/24 hizmetinizde profesyonel sürücüler"
+      },
+      "airport": {
+        "title": "Havalimanı Transferi",
+        "description": "Herhangi bir havalimanına lüks ulaşım"
+      },
+      "events": {
+        "title": "Özel Etkinlikler",
+        "description": "Özel gününüzü daha da unutulmaz kılın"
+      },
+      "corporate": {
+        "title": "Kurumsal Hizmet",
+        "description": "Premium ulaşımla müşterilerinizi etkileyim"
+      }
+    },
+    "whyChooseUs": {
+      "title": "Neden Biz?",
+      "subtitle": "Olağanüstü bir lüks deneyim sunuyoruz",
+      "reasons": {
+        "luxury": {
+          "title": "Premium Filo",
+          "description": "Dünyanın en prestijli araçlarına erişim"
+        },
+        "service": {
+          "title": "Olağanüstü Hizmet",
+          "description": "İhtiyaçlarınız için 7/24 özel ekip"
+        },
+        "convenience": {
+          "title": "Kolay Rezervasyon",
+          "description": "Basit ve hızlı rezervasyon süreci"
+        },
+        "safety": {
+          "title": "Önce Güvenlik",
+          "description": "Tüm araçlar düzenli olarak bakım ve kontrol edilir"
+        }
+      }
+    },
+    "testimonials": {
+      "title": "Müşterilerimiz Ne Diyor?",
+      "subtitle": "Memnun müşterilerimizden yorumlar"
+    }
+  },
+  "fleet": {
+    "title": "VIP Araç Filomuz",
+    "subtitle": "Premium VIP araç koleksiyonumuzu keşfedin",
+    "categories": {
+      "all": "Tümü",
+      "luxury": "Lüks",
+      "vip": "VIP",
+      "ultraLuxury": "Ultra Lüks"
+    },
+    "features": "Özellikler",
+    "specifications": "Teknik Özellikler",
+    "year": "Yıl",
+    "fuelType": "Yakıt Tipi",
+    "seats": "Koltuk",
+    "searchPlaceholder": "Araçları ara...",
+    "filter": "Filtrele",
+    "noVehicles": "Araç bulunamadı",
+    "adjustSearch": "Arama kriterlerinizi değiştirmeyi deneyin"
+  },
+  "services": {
+    "title": "Hizmetlerimiz",
+    "subtitle": "İhtiyaçlarınıza özel premium hizmetler",
+    "luxuryCar": {
+      "title": "VIP Kiralama",
+      "description": "Özel VIP araç filomuza erişin ve lüks, konfor ve prestiji bir arada yaşayın."
+    },
+    "doorstep": {
+      "title": "Kapıda Teslim",
+      "description": "Lüks aracınızı eviniz, oteliniz veya havalimanı gibi tercih ettiğiniz yerde teslim eder ve alırız."
+    },
+    "wedding": {
+      "title": "Düğün Aracı Kiralama",
+      "description": "Özel gününüzü süslenmiş araçlarımızla daha da unutulmaz kılın."
+    },
+    "longTerm": {
+      "title": "Uzun Süreli Kiralama",
+      "description": "Uzun süreli konaklamalar veya projeler için özel fiyatlar ve avantajlardan yararlanın."
+    },
+    "insurance": {
+      "title": "Premium Sigorta",
+      "description": "Her kiralama ile birlikte kapsamlı sigorta paketimizle güvenle sürüş yapın."
+    },
+    "vip": {
+      "title": "VIP Üyelik",
+      "description": "Öncelikli rezervasyonlar, özel indirimler ve kişiselleştirilmiş hizmetler için özel VIP üyelik programımıza katılın."
+    },
+    "process": {
+      "title": "Nasıl Çalışır",
+      "subtitle": "Basit sürecimiz, baştan sona sorunsuz bir lüks deneyim sağlar",
+      "step1": {
+        "title": "Aracınızı Seçin",
+        "description": "Özel filomuza göz atın ve ihtiyaçlarınıza uygun mükemmel lüks aracı seçin."
+      },
+      "step2": {
+        "title": "Çevrimiçi Rezervasyon veya Arama",
+        "description": "Güvenli çevrimiçi sistemimizden rezervasyon yapın veya VIP concierge'imizle iletişime geçin."
+      },
+      "step3": {
+        "title": "Araç Teslimi",
+        "description": "Seçtiğiniz aracı belirlenen zamanda tercih ettiğiniz yere teslim ederiz."
+      },
+      "step4": {
+        "title": "Keyfini Çıkarın ve İade Edin",
+        "description": "Lüks deneyiminizin keyfini çıkarın ve aracı iade edin veya toplama için düzenleme yapın."
+      }
+    },
+    "cta": {
+      "title": "Lüksü Deneyimlemeye Hazır mısınız?",
+      "description": "Filomuza göz atın veya premium kiralama işleminizi düzenlemek için VIP concierge ekibimizle iletişime geçin.",
+      "viewFleet": "Filomuzu İnceleyin",
+      "contactUs": "Bize Ulaşın"
+    },
+    "chauffeur": {
+      "title": "Şoför Hizmeti",
+      "description": "Profesyonel şoförlerimiz en yüksek seviyede hizmet vermek üzere eğitilmiştir. 7/24 hizmet veren şoförlerimiz, en üst düzeyde gizlilik ve profesyonellik sağlarken rahat ve güvenli bir yolculuk garanti eder.",
+      "features": [
+        "Profesyonel, üniformalı sürücüler",
+        "7/24 hizmet",
+        "Çok dilli şoförler",
+        "Kişiselleştirilmiş hizmet"
+      ]
+    },
+    "airport": {
+      "title": "Havalimanı Transferleri",
+      "description": "Premium havalimanı transfer hizmetimizle yolculuğunuza şık bir başlangıç ve bitiş yapın. Zamanında karşılama için uçuş varışlarını takip ediyor ve şoförlerimiz kesintisiz bir seyahat deneyimi için bagaj konusunda yardımcı oluyor.",
+      "features": [
+        "Uçuş takibi",
+        "Karşılama hizmeti",
+        "Bagaj yardımı",
+        "Bekleme süresi yok"
+      ]
+    },
+    "events": {
+      "title": "Özel Etkinlikler",
+      "description": "Lüks araçlarımızla özel anlarınızı gerçekten unutulmaz kılın. İster düğün, ister yıldönümü, ister kurumsal etkinlik olsun, zarafet katan şık ulaşım çözümleri sunuyoruz.",
+      "features": [
+        "Düğün paketleri",
+        "Kırmızı halı hizmeti",
+        "Özel dekorasyonlar",
+        "Fotoğraf koordinasyonu"
+      ]
+    },
+    "corporate": {
+      "title": "Kurumsal Hizmetler",
+      "description": "Kurumsal ulaşım çözümlerimizle müşterilerinizi ve iş ortaklarınızı etkileyin. Yöneticiler için her zaman dakiklik ve profesyonellik sağlayan güvenilir ve özel hizmet sunuyoruz.",
+      "features": [
+        "Kurumsal hesaplar",
+        "Roadshow koordinasyonu",
+        "Yönetici taşımacılığı",
+        "Gizlilik garantisi"
+      ]
+    }
+  },
+  "about": {
+    "title": "AntalyamVip Hakkında",
+    "subtitle": "Seçkin müşteriler için premium VIP kiralama hizmeti",
+    "ourStory": {
+      "title": "Hikayemiz",
+      "description": "ALANYAM VİP TRANSFER, 2010 yılından bu yana premium ulaşım sektöründe faaliyet gösteren, alanında lider bir kuruluştur. Şirketimiz, Antalya Havalimanı'ndan bölgedeki prestijli konaklama tesislerine ve çeşitli destinasyonlara, üst düzey konfor ve lüks standartlarda transfer hizmetleri sunmaktadır. Müşteri memnuniyetini merkeze alan iş modelimiz, özel olarak tasarlanmış lüks araç filomuz ve profesyonel sürücü kadromuz ile sektörde fark yaratmaktayız. Misafirlerimiz, havalimanında karşılama hizmetinden başlayarak, seyahatlerinin her aşamasında kusursuz bir deneyim yaşamaktadır. ALANYAM VİP TRANSFER olarak, Antalya bölgesinde ve ötesinde, kurumsal ve bireysel müşterilerimize yönelik özelleştirilmiş çözümler sunmaya devam etmekteyiz."
+    },
+    "mission": {
+      "title": "Misyonumuz",
+      "description": "Misyonumuz, müşterilerimize en yüksek kalitede VIP taşımacılık hizmeti sunmaktır. Güvenlik, konfor ve zamanında hizmet konusunda ödün vermeden, her müşterinin beklentilerini aşmayı hedefliyoruz."
+    },
+    "vision": {
+      "title": "Vizyonumuz",
+      "description": "ALANYAM VİP TRANSFER FİRMASI olarak vizyonumuz, yolcularımıza unutulmaz ve lüks bir seyahat deneyimi sunmak, seyahat standartlarını yükseltmek ve sektörde öncü olmaktır. Her yolculukta mükemmelliği hedefleyerek, müşterilerimize ayrıcalıklı bir konfor sunmak için sürekli olarak ilerlemeyi ve yeniliği teşvik etmeyi amaçlıyoruz."
+    },
+    "values": {
+      "title": "Değerlerimiz",
+      "excellence": {
+        "title": "Mükemmellik",
+        "description": "Hizmetimizin her yönünde mükemmelliği hedefliyoruz.",
+        "point1": "Titizlikle bakımı yapılan araçlar",
+        "point2": "Sıkı kalite kontrol",
+        "point3": "Sürekli iyileştirme"
+      },
+      "integrity": {
+        "title": "Dürüstlük",
+        "description": "Tüm işlerimizde dürüstlük ve şeffaflıkla çalışıyoruz.",
+        "point1": "Gizli ücret olmayan şeffaf fiyatlandırma",
+        "point2": "Dürüst iletişim",
+        "point3": "Etik iş uygulamaları"
+      },
+      "reliability": {
+        "title": "Güvenilirlik",
+        "description": "Güvenilir ve tutarlı olmaya kararlıyız."
+      },
+      "innovation": {
+        "title": "Yenilikçilik",
+        "description": "Hizmetlerimizi sürekli iyileştirme ve geliştirme yolları arıyoruz."
+      },
+      "subtitle": "Her şeyi yaparken bizi yönlendiren ilkeler",
+      "personalization": {
+        "title": "Kişiselleştirme",
+        "description": "Gerçek lüksün, her müşterinin benzersiz tercihlerine göre özelleştirilmiş hizmette yattığına inanıyoruz.",
+        "point1": "Özelleştirilmiş kiralama deneyimleri",
+        "point2": "Özel kişisel concierge",
+        "point3": "Bireysel ihtiyaçlara özen"
+      }
+    },
+
+    "today": {
+      "description": "Bugün, başlangıçtaki mükemmellik anlayışımızı korurken, VIP müşterilerimizin değişen ihtiyaçlarını karşılamak için filomuzu sürekli yeniliyor ve hizmetlerimizi geliştiriyoruz."
+    },
+    "showroom": "VIP showroom",
+    "yearsOfExcellence": "Yıllık Mükemmellik",
+    "stats": {
+      "title": "Hizmet Başarımız",
+      "subtitle": "Mükemmelliğe olan bağlılığımızın sonuçları",
+      "satisfiedClients": {
+        "value": "2,500+",
+        "label": "Memnun Müşteri"
+      },
+      "successfulTrips": {
+        "value": "10,000+",
+        "label": "Başarılı Seyahat"
+      },
+      "clientRetention": {
+        "value": "100%",
+        "label": "Müşteri Sadakati"
+      },
+      "customerRating": {
+        "value": "5/5",
+        "label": "Müşteri Değerlendirmesi"
+      }
+    }
+  },
+  "contact": {
+    "title": "İletişim",
+    "subtitle": "Ekibimizle iletişime geçin",
+    "form": {
+      "title": "Bize Ulaşın",
+      "name": "Ad Soyad",
+      "namePlaceholder": "Adınız",
+      "email": "E-posta Adresi",
+      "emailPlaceholder": "E-posta adresiniz",
+      "phone": "Telefon Numarası",
+      "phonePlaceholder": "Telefon numaranız",
+      "carModel": "Tercih Edilen Araç",
+      "selectCar": "Bir araç seçin",
+      "startDate": "Başlangıç Tarihi",
+      "endDate": "Bitiş Tarihi",
+      "message": "Özel İstekler",
+      "messagePlaceholder": "Özel istekleriniz veya ek bilgiler...",
+      "submit": "Bize Ulaşın",
+      "success": "Teşekkürler. VIP concierge ekibimiz en kısa sürede sizinle iletişime geçecektir.",
+      "error": "Mesajınız gönderilirken bir hata oluştu. Lütfen tekrar deneyin."
+    },
+    "info": {
+      "title": "İletişim Bilgileri",
+      "address": {
+        "line1": "Antalya Havaalanı",
+        "line2": "Antalya",
+        "line3": "Türkiye"
+      },
+      "phone": "0532 113 4125",
+      "phoneNumber": "0532 113 4125",
+      "email": "info@alanyamviptransfer.com",
+      "hours": "Pazartesi - Pazar: 7/24",
+      "phoneSupport": "(7/24 VIP Concierge)",
+      "workDays": "Pazartesi - Cuma: 09:00 - 20:00",
+      "weekends": "Cumartesi - Pazar: 10:00 - 18:00",
+      "support": "VIP müşteriler için 7/24 telefon desteği",
+      "immediate": "Acil Yardıma mı İhtiyacınız Var?",
+      "immediateText": "VIP concierge ekibimiz acil talepleriniz ve özel düzenlemeleriniz için 7/24 hizmetinizdedir.",
+      "call": "VIP Concierge'i Ara",
+      "location": "Adres",
+      "fax": "Fax: 0532 113 4125"
+    },
+    "location": {
+      "title": "Konumumuz",
+      "description": "Özel filomuzu yakından incelemek için showroomumuzu ziyaret edin"
+    },
+    "map": {
+      "title": "Konumumuz",
+      "description": "Özel filomuzu yakından incelemek için showroomumuzu ziyaret edin"
+    }
+  },
+  "carFeatures": {
+    "leatherinterior": "Deri Döşeme",
+    "premiumsound": "Premium Ses Sistemi",
+    "executiveseating": "Executive Koltuklar",
+    "ambientlighting": "Ambiyans Aydınlatma",
+    "chauffeuroption": "Şoför Seçeneği",
+    "conferenceseating": "Konferans Oturma Düzeni",
+    "wifi": "Wi-Fi",
+    "refrigerator": "Buzdolabı",
+    "recliningseats": "Yatırılabilir Koltuklar",
+    "panoramicroof": "Panoramik Tavan",
+    "premiumentertainment": "Premium Eğlence Sistemi",
+    "massageseats": "Masajlı Koltuklar",
+    "mbuxsystem": "MBUX Sistemi",
+    "conferencesystem": "Konferans Sistemi",
+    "extendedlegroom": "Geniş Bacak Mesafesi",
+    "privacyglass": "Özel Cam",
+    "premiumaudio": "Premium Ses Sistemi",
+    "tabletcontrols": "Tablet Kontroller",
+    "blackexterior": "Siyah Dış Tasarım",
+    "tintedwindows": "Karartılmış Camlar",
+    "premiuminterior": "Premium İç Tasarım",
+    "airsuspension": "Havalı Süspansiyon"
+  },
+  "booking": {
+    "title": "VIP Transfer Rezervasyonu",
+    "pickupLocation": "Alış Yeri",
+    "dropoffLocation": "Bırakış Yeri",
+    "pickupDate": "Alış Tarihi",
+    "pickupTime": "Alış Saati",
+    "dropoffDate": "Bırakış Tarihi",
+    "dropoffTime": "Bırakış Saati",
+    "passengers": "Yolcu Sayısı",
+    "passenger": "Yolcu",
+    "enterLocation": "Konum giriniz",
+    "bookNow": "Rezervasyon Yap",
+    "searchButton": "Uygunluk Ara",
+    "successMessage": "Rezervasyon başarılı! Yakında sizinle iletişime geçeceğiz.",
+    "fullName": "Ad Soyad",
+    "phone": "Telefon Numarası",
+    "email": "E-posta Adresi",
+    "notes": "Ek Notlar"
+  },
+  "bookingResults": {
+    "title": "Rezervasyon Sonuçları",
+    "summary": "Rezervasyon Özeti",
+    "pickupLocation": "Alış Yeri",
+    "dropoffLocation": "Bırakış Yeri",
+    "pickupDateTime": "Alış Tarih & Saat",
+    "dropoffDateTime": "Bırakış Tarih & Saat",
+    "passengers": "Yolcu Sayısı",
+    "availableVehicles": "Uygun Araçlar",
+    "noVehicles": "Seçilen kriterlere uygun araç bulunamadı",
+    "selectVehicle": "Araç Seç",
+    "select": "Seç",
+    "selected": "Seçildi",
+    "confirmButton": "Rezervasyonu Onayla",
+    "selectVehicleAlert": "Lütfen önce bir araç seçin",
+    "contactInformation": "İletişim Bilgileri",
+    "contactDescription": "Rezervasyonunuzla ilgili size ulaşabilmemiz için lütfen iletişim bilgilerinizi girin.",
+    "fullName": "Ad Soyad",
+    "fullNamePlaceholder": "Adınızı ve soyadınızı girin",
+    "fullNameRequired": "Ad soyad gereklidir",
+    "phone": "Telefon Numarası",
+    "phonePlaceholder": "Telefon numaranızı girin",
+    "phoneRequired": "Telefon numarası gereklidir",
+    "email": "E-posta Adresi",
+    "emailPlaceholder": "E-posta adresinizi girin",
+    "emailRequired": "Geçerli bir e-posta adresi gereklidir",
+    "notes": "Ek Notlar",
+    "notesPlaceholder": "Bilmemiz gereken özel istekler veya bilgiler",
+    "requiredFields": "Zorunlu alanlar",
+    "seatsAvailable": "koltuk",
+    "features": "Özellikler",
+    "perDay": "günlük"
+  }
+}
