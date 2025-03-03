@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookingFormData } from '../types';
 import { Car } from '../types';
-import { Calendar, Clock, MapPin, Users, Check, Phone, Mail, UserIcon, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Check, Phone, Mail, User, MessageSquare } from 'lucide-react';
 import ImageModal from '../components/ImageModal';
 
 const BookingResults: React.FC = () => {
@@ -24,7 +24,6 @@ const BookingResults: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // BookingForm'dan gelen verileri al
@@ -40,11 +39,7 @@ const BookingResults: React.FC = () => {
     const fetchCars = async () => {
       try {
         setError(null);
-        setLoading(true);
-        
-        // Canlı ortamdaki API endpoint'ini kullanıyoruz
         const response = await fetch('/api/cars');
-        
         if (!response.ok) {
           throw new Error('Araçlar yüklenirken bir hata oluştu');
         }
@@ -53,15 +48,13 @@ const BookingResults: React.FC = () => {
       } catch (error) {
         console.error('Araçları getirme hatası:', error);
         setError('Araçlar yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchCars();
   }, []);
 
-  const handleCarSelect = (car: Car) => {
+  const handleSelectCar = (car: Car) => {
     setSelectedCar(car);
   };
 
@@ -152,129 +145,108 @@ const BookingResults: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">{t('bookingResults.title')}</h1>
-      
+      {/* Error/Success Messages */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
           {error}
         </div>
       )}
       
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6">
           {success}
         </div>
       )}
       
+      {/* Booking Summary */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">{t('bookingResults.tripDetails')}</h2>
-        {/* Trip details */}
-        {bookingData && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="font-semibold">{t('bookingForm.tripType')}:</p>
-              <p>{bookingData.tripType === 'oneWay' ? t('bookingForm.oneWay') : t('bookingForm.roundTrip')}</p>
+        <h2 className="text-2xl font-semibold mb-4">{t('bookingResults.summary')}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold mb-2">{t('bookingResults.pickupDetails')}</h3>
+            <div className="space-y-2">
+              <p className="flex items-center text-gray-600">
+                <MapPin className="mr-2" size={18} />
+                {bookingData.pickupLocation}
+              </p>
+              <p className="flex items-center text-gray-600">
+                <Calendar className="mr-2" size={18} />
+                {fixDate(bookingData.pickupDate)}
+              </p>
+              <p className="flex items-center text-gray-600">
+                <Users className="mr-2" size={18} />
+                {bookingData.passengers} {t('common.passengers')}
+              </p>
             </div>
-            <div>
-              <p className="font-semibold">{t('bookingForm.passengers')}:</p>
-              <p>{bookingData.passengers}</p>
-            </div>
-            <div>
-              <p className="font-semibold">{t('bookingForm.pickupLocation')}:</p>
-              <p>{bookingData.pickupLocation}</p>
-            </div>
-            <div>
-              <p className="font-semibold">{t('bookingForm.dropoffLocation')}:</p>
-              <p>{bookingData.dropoffLocation}</p>
-            </div>
-            <div>
-              <p className="font-semibold">{t('bookingForm.pickupDate')}:</p>
-              <p>{new Date(bookingData.pickupDate).toLocaleDateString()}</p>
-            </div>
-            <div>
-              <p className="font-semibold">{t('bookingForm.pickupTime')}:</p>
-              <p>{bookingData.pickupTime}</p>
-            </div>
-            {bookingData.tripType === 'roundTrip' && (
-              <>
-                <div>
-                  <p className="font-semibold">{t('bookingForm.returnPickupLocation')}:</p>
-                  <p>{bookingData.returnPickupLocation}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">{t('bookingForm.returnDropoffLocation')}:</p>
-                  <p>{bookingData.returnDropoffLocation}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">{t('bookingForm.returnDate')}:</p>
-                  <p>{bookingData.returnDate ? new Date(bookingData.returnDate).toLocaleDateString() : ''}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">{t('bookingForm.returnTime')}:</p>
-                  <p>{bookingData.returnTime}</p>
-                </div>
-              </>
-            )}
           </div>
-        )}
+          
+          {bookingData.tripType === 'roundTrip' && (
+            <div>
+              <h3 className="font-semibold mb-2">{t('bookingResults.returnDetails')}</h3>
+              <div className="space-y-2">
+                <p className="flex items-center text-gray-600">
+                  <MapPin className="mr-2" size={18} />
+                  {bookingData.returnPickupLocation}
+                </p>
+                <p className="flex items-center text-gray-600">
+                  <Calendar className="mr-2" size={18} />
+                  {fixDate(bookingData.returnDate)}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+
+      {/* Available Cars */}
+      <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">{t('bookingResults.availableVehicles')}</h2>
         
-        {loading ? (
-          <div className="bg-white rounded-lg p-6 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('common.loading')}</p>
-          </div>
-        ) : error ? (
-          <div className="bg-white rounded-lg p-6 text-center">
-            <p className="text-red-500">{error}</p>
-          </div>
-        ) : cars.length === 0 ? (
-          <div className="bg-white rounded-lg p-6 text-center">
-            <p className="text-gray-600">{t('bookingResults.noVehicles')}</p>
+        {cars.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">{t('common.loadingVehicles')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cars.map((car) => (
+            {cars.map(car => (
               <div 
                 key={car.id} 
-                className={`border rounded-lg overflow-hidden hover:shadow-lg transition-shadow ${
-                  selectedCar?.id === car.id ? 'border-2 border-amber-500' : 'border-gray-200'
+                className={`bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transition duration-300 ${
+                  selectedCar?.id === car.id ? 'ring-2 ring-amber-500' : 'hover:shadow-lg'
                 }`}
-                onClick={() => handleCarSelect(car)}
+                onClick={() => handleSelectCar(car)}
               >
-                <div className="relative h-48">
+                <div className="relative">
                   <img 
-                    src={car.images && car.images.length > 0 ? car.images[0] : 'https://via.placeholder.com/300x200?text=No+Image'} 
+                    src={car.images && car.images.length > 0 ? car.images[0] : '/images/car-placeholder.jpg'} 
                     alt={car.name} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-48 object-cover"
                   />
+                  <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">
+                    {car.category}
+                  </div>
                 </div>
+                
                 <div className="p-4">
-                  <h3 className="text-xl font-semibold mb-2">{car.name}</h3>
-                  <p className="text-gray-600 mb-2">{car.category}</p>
-                  <div className="flex items-center mb-2">
-                    <UserIcon className="w-4 h-4 mr-1 text-gray-500" />
-                    <span className="text-sm text-gray-500">{car.seats} {t('common.seats')}</span>
+                  <h3 className="text-lg font-semibold mb-2">{car.name}</h3>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="flex items-center text-gray-600">
+                      <Users className="mr-1" size={16} />
+                      <span className="text-sm">{car.seats} {t('common.seats')}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="mr-1" size={16} />
+                      <span className="text-sm">{car.fuel_type}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-xl font-bold text-amber-600">{car.price_per_day} ₺</span>
-                    <button 
-                      className={`px-4 py-2 rounded-md ${
-                        selectedCar?.id === car.id 
-                          ? 'bg-amber-500 text-white' 
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCarSelect(car);
-                      }}
-                    >
-                      {selectedCar?.id === car.id ? t('common.selected') : t('common.select')}
-                    </button>
-                  </div>
+                  
+                  {selectedCar?.id === car.id && (
+                    <div className="flex items-center text-amber-500">
+                      <Check className="mr-2" size={18} />
+                      {t('bookingResults.selected')}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -290,7 +262,7 @@ const BookingResults: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
