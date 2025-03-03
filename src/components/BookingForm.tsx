@@ -21,13 +21,6 @@ const BookingForm: React.FC = () => {
     passengers: 1
   });
 
-  const [contactInfo, setContactInfo] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    notes: ''
-  });
-
   // When trip type changes, update return fields if needed
   useEffect(() => {
     if (formData.tripType === 'roundTrip' && formData.returnPickupLocation === '') {
