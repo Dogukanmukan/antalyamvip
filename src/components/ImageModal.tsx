@@ -2,30 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageModalProps {
-  images: string[];
-  initialIndex: number;
+  isOpen: boolean;
   onClose: () => void;
+  images: string[];
+  currentIndex: number;
+  onPrev: () => void;
+  onNext: () => void;
 }
 
-const ImageModal: React.FC<ImageModalProps> = ({ images, initialIndex, onClose }) => {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+const ImageModal: React.FC<ImageModalProps> = ({ images, currentIndex, onClose, onPrev, onNext }) => {
+  const [currentIndexState, setCurrentIndex] = useState(currentIndex);
   
   // ESC tuşu ile kapatma
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') prevImage();
-      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') onPrev();
+      if (e.key === 'ArrowRight') onNext();
     };
     
-    window.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden'; // Scroll'u engelle
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden'; // Scroll'u kapat
     
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto'; // Scroll'u geri aç
     };
-  }, [onClose]);
+  }, [onClose, onPrev, onNext]);
   
   const prevImage = () => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -47,7 +50,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ images, initialIndex, onClose }
         
         <div className="relative h-full">
           <img 
-            src={images[currentIndex]} 
+            src={images[currentIndexState]} 
             alt="Gallery image" 
             className="w-full h-full object-contain"
           />
@@ -72,7 +75,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ images, initialIndex, onClose }
                   <button
                     key={index}
                     className={`w-3 h-3 rounded-full ${
-                      currentIndex === index ? 'bg-white' : 'bg-white/50'
+                      currentIndexState === index ? 'bg-white' : 'bg-white/50'
                     }`}
                     onClick={() => setCurrentIndex(index)}
                   />
@@ -80,7 +83,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ images, initialIndex, onClose }
               </div>
               
               <div className="absolute bottom-4 right-4 bg-black/50 text-white text-sm px-3 py-1 rounded">
-                {currentIndex + 1} / {images.length}
+                {currentIndexState + 1} / {images.length}
               </div>
             </>
           )}

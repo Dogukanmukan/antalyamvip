@@ -1,7 +1,7 @@
 import { Calendar, Clock, MapPin, Users, ChevronDown, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { BookingFormData } from '../types/booking';
+import { BookingFormData } from '../types';
 import { useState, useEffect } from 'react';
 
 const BookingForm: React.FC = () => {

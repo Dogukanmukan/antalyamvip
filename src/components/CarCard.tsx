@@ -77,7 +77,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
             </div>
             <div className="flex items-center text-gray-600">
               <Fuel size={16} className="mr-2 text-amber-500" />
-              <span className="text-sm">{car.fuel_type || car.fuelType}</span>
+              <span className="text-sm">{car.fuel_type}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <Users size={16} className="mr-2 text-amber-500" />
@@ -112,8 +112,11 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
       {isModalOpen && (
         <ImageModal 
           images={car.images} 
-          initialIndex={currentImageIndex}
+          currentIndex={currentImageIndex}
           onClose={() => setIsModalOpen(false)}
+          onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + car.images.length) % car.images.length)}
+          onNext={() => setCurrentImageIndex((prev) => (prev + 1) % car.images.length)}
+          isOpen={isModalOpen}
         />
       )}
     </>

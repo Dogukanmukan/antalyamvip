@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import AdminHeader from '../../components/admin/AdminHeader';
-import { useTranslation } from 'react-i18next';
 import BookingDetailModal from '../../components/admin/BookingDetailModal';
 import { Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -32,7 +31,6 @@ type SortField = 'id' | 'date' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const AdminBookings: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -81,7 +79,14 @@ const AdminBookings: React.FC = () => {
           );
         }
 
-        // Sıralama uygula
+        // Durum sıralaması için yardımcı nesne
+        const statusOrder: Record<string, number> = {
+          'pending': 0,
+          'completed': 1,
+          'cancelled': 2
+        };
+
+        // Rezervasyonları sırala
         const sortedBookings = [...filteredBookings].sort((a, b) => {
           if (sortField === 'id') {
             return sortDirection === 'asc' ? a.id - b.id : b.id - a.id;
@@ -90,11 +95,9 @@ const AdminBookings: React.FC = () => {
             const dateB = new Date(b.pickup_date).getTime();
             return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
           } else if (sortField === 'status') {
-            // Status sıralaması: pending -> completed -> cancelled
-            const statusOrder = { pending: 1, completed: 2, cancelled: 3 };
             const orderA = statusOrder[a.status] || 999;
             const orderB = statusOrder[b.status] || 999;
-            return sortDirection === 'asc' ? orderA - orderB : orderB - orderA;
+            return orderA - orderB;
           }
           return 0;
         });

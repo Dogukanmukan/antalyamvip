@@ -140,8 +140,8 @@ const EditCar: React.FC = () => {
       
       // setSuccess('Resimler başarıyla yüklendi');
     } catch (err) {
-      console.error('Resim yükleme hatası:', err);
-      setError(err.message || 'Resim yüklenirken bir hata oluştu');
+      console.error('Error uploading image:', err);
+      setError('Resim yüklenirken bir hata oluştu');
     } finally {
       setUploading(false);
     }

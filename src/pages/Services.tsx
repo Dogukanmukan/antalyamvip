@@ -1,5 +1,4 @@
-import React from 'react';
-import { Award, Calendar, Car, Clock, Gift, Globe, MapPin, Phone, Shield, Truck, Users } from 'lucide-react';
+import { Award, Calendar, Car, Clock, Gift, Globe, MapPin, Phone, Shield, Users } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
 

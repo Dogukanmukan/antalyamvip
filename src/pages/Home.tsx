@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Car, ChevronRight, Crown, MapPin, Phone, Shield, Star, Users } from 'lucide-react';
 import CarCard from '../components/CarCard';
 import { Link } from 'react-router-dom';

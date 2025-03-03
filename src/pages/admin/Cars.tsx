@@ -97,7 +97,7 @@ const AdminCars: React.FC = () => {
       fetchCars(); // Araçları yeniden yükle
     } catch (err) {
       console.error('Error seeding cars:', err);
-      alert(err.message || 'Araçlar eklenirken bir hata oluştu.');
+      alert(err instanceof Error ? err.message : 'Araçlar eklenirken bir hata oluştu.');
     } finally {
       setSeedLoading(false);
     }

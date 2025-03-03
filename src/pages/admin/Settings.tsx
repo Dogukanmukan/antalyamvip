@@ -1,237 +1,210 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import AdminHeader from '../../components/admin/AdminHeader';
-import { createAdmin } from '../../api/auth';
-import { initializeDatabase } from '../../api/database';
+import { createAdmin } from '../../services/auth';
+import { initializeDatabase } from '../../services/database';
 
-// Form validation schema for password change
+// Form validation schema
 const passwordSchema = yup.object({
   currentPassword: yup.string().required('Mevcut şifre gerekli'),
   newPassword: yup.string()
-    .required('Yeni şifre gerekli')
-    .min(8, 'Şifre en az 8 karakter olmalı'),
+    .min(6, 'Şifre en az 6 karakter olmalı')
+    .required('Yeni şifre gerekli'),
   confirmPassword: yup.string()
     .oneOf([yup.ref('newPassword')], 'Şifreler eşleşmiyor')
     .required('Şifre onayı gerekli'),
-}).required();
+});
 
-type PasswordFormData = {
+// Form data type
+interface PasswordFormData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
-};
+}
 
-const AdminSettings: React.FC = () => {
+const AdminSettings = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  // Kimlik doğrulama kontrolü
+  const [message, setMessage] = useState<string>('');
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<PasswordFormData>({
+    resolver: yupResolver(passwordSchema)
+  });
+
   useEffect(() => {
+    // Check if admin is logged in
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
-    } else {
-      setIsAuthenticated(true);
     }
   }, [navigate]);
-  
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<PasswordFormData>({
-    resolver: yupResolver(passwordSchema)
-  });
-  
+
   const onSubmit = async (data: PasswordFormData) => {
     try {
-      setLoading(true);
-      setErrorMessage(null);
-      setSuccessMessage(null);
+      setMessage('');
+      setIsError(false);
       
-      // Burada gerçek API çağrısı yapılacak
-      // Şimdilik sadece başarılı olduğunu varsayalım
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        }),
+      });
       
-      setSuccessMessage('Şifreniz başarıyla güncellendi.');
-      reset();
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage('Şifre başarıyla değiştirildi');
+        setIsError(false);
+      } else {
+        setMessage(result.message || 'Şifre değiştirme işlemi başarısız');
+        setIsError(true);
+      }
     } catch (err) {
-      console.error('Error updating password:', err);
-      setErrorMessage('Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
+      console.error('Error changing password:', err);
+      setMessage('Şifre değiştirme sırasında bir hata oluştu');
+      setIsError(true);
     }
   };
-  
-  // Admin kullanıcısı oluştur
+
+  const handleDatabaseInit = async () => {
+    try {
+      await initializeDatabase();
+      setMessage('Veritabanı başarıyla sıfırlandı');
+      setIsError(false);
+    } catch (error) {
+      setMessage('Veritabanı sıfırlama işlemi başarısız oldu');
+      setIsError(true);
+    }
+  };
+
   const handleCreateAdmin = async () => {
     try {
-      setLoading(true);
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      
-      const result = await createAdmin('admin', 'admin123', 'admin@alanyamvip.com');
-      
-      if (result.success) {
-        setSuccessMessage(result.message);
-      } else {
-        setErrorMessage(result.message);
-      }
-    } catch (err) {
-      console.error('Error creating admin user:', err);
-      setErrorMessage('Admin kullanıcısı oluşturulurken bir hata oluştu.');
-    } finally {
-      setLoading(false);
+      await createAdmin('admin', 'admin123', 'admin@example.com');
+      setMessage('Admin hesabı başarıyla oluşturuldu');
+      setIsError(false);
+    } catch (error) {
+      setMessage('Admin hesabı oluşturma işlemi başarısız oldu');
+      setIsError(true);
     }
   };
-  
-  // Veritabanını başlat
-  const handleInitDb = async () => {
-    try {
-      setLoading(true);
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      
-      const result = await initializeDatabase();
-      
-      if (result.success) {
-        setSuccessMessage(result.message);
-      } else {
-        setErrorMessage(result.message);
-      }
-    } catch (err) {
-      console.error('Error initializing database:', err);
-      setErrorMessage('Veritabanı başlatılırken bir hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  if (!isAuthenticated) {
-    return <div>Yükleniyor...</div>;
-  }
-  
+
   return (
     <div className="flex h-screen bg-gray-100">
       <AdminSidebar />
-      
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader title="Ayarlar" />
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          <h1 className="text-2xl font-semibold text-gray-800 mb-6">Ayarlar</h1>
-          
-          {successMessage && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              {successMessage}
-            </div>
-          )}
-          
-          {errorMessage && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {errorMessage}
-            </div>
-          )}
-          
-          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-800">Şifre Değiştir</h2>
-            </div>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-6 py-8">
+            <h3 className="text-gray-700 text-3xl font-medium">Ayarlar</h3>
             
-            <div className="p-6">
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="mb-4">
-                  <label htmlFor="currentPassword" className="block text-gray-700 font-medium mb-2">
-                    Mevcut Şifre
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    {...register('currentPassword')}
-                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                      errors.currentPassword ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.currentPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.currentPassword.message}</p>
-                  )}
+            <div className="mt-8">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+                  <div className="md:grid md:grid-cols-3 md:gap-6">
+                    <div className="md:col-span-1">
+                      <h3 className="text-lg font-medium leading-6 text-gray-900">Şifre Değiştir</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Güvenliğiniz için şifrenizi düzenli olarak değiştirin
+                      </p>
+                    </div>
+                    <div className="mt-5 md:mt-0 md:col-span-2">
+                      <div className="grid grid-cols-6 gap-6">
+                        <div className="col-span-6 sm:col-span-4">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Mevcut Şifre
+                          </label>
+                          <input
+                            type="password"
+                            {...register('currentPassword')}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                          {errors.currentPassword && (
+                            <p className="mt-2 text-sm text-red-600">{errors.currentPassword.message}</p>
+                          )}
+                        </div>
+
+                        <div className="col-span-6 sm:col-span-4">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Yeni Şifre
+                          </label>
+                          <input
+                            type="password"
+                            {...register('newPassword')}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                          {errors.newPassword && (
+                            <p className="mt-2 text-sm text-red-600">{errors.newPassword.message}</p>
+                          )}
+                        </div>
+
+                        <div className="col-span-6 sm:col-span-4">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Yeni Şifre (Tekrar)
+                          </label>
+                          <input
+                            type="password"
+                            {...register('confirmPassword')}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                          {errors.confirmPassword && (
+                            <p className="mt-2 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      type="submit"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      Şifreyi Değiştir
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="newPassword" className="block text-gray-700 font-medium mb-2">
-                    Yeni Şifre
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    {...register('newPassword')}
-                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                      errors.newPassword ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.newPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.newPassword.message}</p>
-                  )}
-                </div>
-                
-                <div className="mb-6">
-                  <label htmlFor="confirmPassword" className="block text-gray-700 font-medium mb-2">
-                    Yeni Şifre (Tekrar)
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    {...register('confirmPassword')}
-                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-                  )}
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:opacity-50"
-                >
-                  {loading ? 'İşleniyor...' : 'Şifreyi Değiştir'}
-                </button>
               </form>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-800">Veritabanı Yönetimi</h2>
-            </div>
-            
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">
-                Veritabanı işlemleri için aşağıdaki butonları kullanabilirsiniz.
-              </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={handleCreateAdmin}
-                  disabled={loading}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:opacity-50"
-                >
-                  Admin Kullanıcısı Oluştur
-                </button>
-                
-                <button
-                  onClick={handleInitDb}
-                  disabled={loading}
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:opacity-50"
-                >
-                  Veritabanını Başlat
-                </button>
+
+              <div className="mt-8 bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+                <div className="md:grid md:grid-cols-3 md:gap-6">
+                  <div className="md:col-span-1">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">Veritabanı İşlemleri</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Dikkat: Bu işlemler geri alınamaz!
+                    </p>
+                  </div>
+                  <div className="mt-5 md:mt-0 md:col-span-2">
+                    <div className="space-y-4">
+                      <button
+                        onClick={handleDatabaseInit}
+                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                      >
+                        Veritabanını Sıfırla
+                      </button>
+                      <button
+                        onClick={handleCreateAdmin}
+                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm"
+                      >
+                        Yeni Admin Oluştur
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {message && (
+                <div className={`mt-4 p-4 rounded-md ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  {message}
+                </div>
+              )}
             </div>
           </div>
         </main>

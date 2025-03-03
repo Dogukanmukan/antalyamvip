@@ -1,9 +1,10 @@
 import { fetch } from '../lib/fetch';
+import { API_BASE_URL } from '../lib/config';
 
 // Admin kullanıcısı oluştur
 export async function createAdmin(username: string, password: string, email: string) {
   try {
-    const response = await fetch('http://localhost:3001/api/create-admin', {
+    const response = await fetch(`${API_BASE_URL}/create-admin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,7 +26,7 @@ export async function createAdmin(username: string, password: string, email: str
 // Kullanıcı girişi
 export async function login(username: string, password: string) {
   try {
-    const response = await fetch('http://localhost:3001/api/login', {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,4 +43,4 @@ export async function login(username: string, password: string) {
       message: 'Giriş sırasında bir hata oluştu'
     };
   }
-}
+} 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Mail, MapPin, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

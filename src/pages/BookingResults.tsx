@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookingFormData } from '../types/booking';
+import { BookingFormData } from '../types';
 import { Car } from '../types';
-import { Calendar, Clock, MapPin, Users, Car as CarIcon, Check, ChevronLeft, ChevronRight, Phone, Mail, User, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Check, ChevronLeft, ChevronRight, Phone, Mail, User, MessageSquare } from 'lucide-react';
 import ImageModal from '../components/ImageModal';
 
 const BookingResults: React.FC = () => {
@@ -13,12 +13,8 @@ const BookingResults: React.FC = () => {
   const [bookingData, setBookingData] = useState<BookingFormData | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [availableCars, setAvailableCars] = useState<Car[]>([]);
-  const [currentImageIndexes, setCurrentImageIndexes] = useState<Record<number, number>>({});
-  const [modalState, setModalState] = useState<{isOpen: boolean, carId: number, imageIndex: number}>({
-    isOpen: false,
-    carId: 0,
-    imageIndex: 0
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [contactInfo, setContactInfo] = useState({
     fullName: '',
     phone: '',
@@ -59,13 +55,9 @@ const BookingResults: React.FC = () => {
         
         let filteredCars = carsData.filter((car: Car) => car.seats >= data.passengers);
         
-        setAvailableCars(filteredCars);
+        setSelectedCar(filteredCars[0]);
         
-        const initialIndexes: Record<number, number> = {};
-        filteredCars.forEach((car: Car) => {
-          initialIndexes[car.id] = 0;
-        });
-        setCurrentImageIndexes(initialIndexes);
+        setCurrentImageIndex(0);
       });
       
       const data = location.state.bookingData as BookingFormData;
@@ -86,15 +78,9 @@ const BookingResults: React.FC = () => {
     setSelectedCar(car);
   };
 
-  const validateForm = () => {
-    const errors = {
-      fullName: contactInfo.fullName.trim() === '',
-      phone: contactInfo.phone.trim() === '',
-      email: !contactInfo.email.includes('@') || contactInfo.email.trim() === ''
-    };
-    
-    setFormErrors(errors);
-    return !Object.values(errors).some(error => error);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form submission logic here
   };
 
   const handleConfirmBooking = async () => {
@@ -217,10 +203,7 @@ const BookingResults: React.FC = () => {
     const car = availableCars.find(c => c.id === carId);
     if (!car) return;
     
-    setCurrentImageIndexes(prev => ({
-      ...prev,
-      [carId]: (prev[carId] + 1) % car.images.length
-    }));
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % car.images.length);
   };
   
   const prevImage = (e: React.MouseEvent, carId: number) => {
@@ -229,20 +212,14 @@ const BookingResults: React.FC = () => {
     const car = availableCars.find(c => c.id === carId);
     if (!car) return;
     
-    setCurrentImageIndexes(prev => ({
-      ...prev,
-      [carId]: (prev[carId] - 1 + car.images.length) % car.images.length
-    }));
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + car.images.length) % car.images.length);
   };
   
   const openImageModal = (e: React.MouseEvent, carId: number) => {
     e.preventDefault();
     e.stopPropagation();
-    setModalState({
-      isOpen: true,
-      carId,
-      imageIndex: currentImageIndexes[carId] || 0
-    });
+    setIsModalOpen(true);
+    setCurrentImageIndex(carId);
   };
 
   if (!bookingData) {
@@ -365,7 +342,7 @@ const BookingResults: React.FC = () => {
             >
               <div className="relative h-48 bg-gray-200">
                 <img 
-                  src={car.images[currentImageIndexes[car.id] || 0]} 
+                  src={car.images[currentImageIndex]} 
                   alt={car.name} 
                   className="w-full h-full object-cover cursor-pointer"
                   onClick={(e) => openImageModal(e, car.id)}
@@ -389,15 +366,6 @@ const BookingResults: React.FC = () => {
                     >
                       <ChevronRight size={20} />
                     </button>
-                    
-                    <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                      {car.images.map((_, index) => (
-                        <span 
-                          key={index} 
-                          className={`w-2 h-2 rounded-full ${(currentImageIndexes[car.id] || 0) === index ? 'bg-white' : 'bg-white/50'}`}
-                        />
-                      ))}
-                    </div>
                   </>
                 )}
                 
@@ -552,27 +520,21 @@ const BookingResults: React.FC = () => {
       </div>
       
       {/* Image Modal */}
-      {modalState.isOpen && availableCars.length > 0 && (
+      {isModalOpen && availableCars.length > 0 && (
         <ImageModal 
-          isOpen={modalState.isOpen}
-          onClose={() => setModalState({...modalState, isOpen: false})}
-          images={availableCars.find(c => c.id === modalState.carId)?.images || []}
-          currentIndex={modalState.imageIndex}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          images={availableCars.find(c => c.id === currentImageIndex)?.images || []}
+          currentIndex={currentImageIndex}
           onPrev={() => {
-            const car = availableCars.find(c => c.id === modalState.carId);
+            const car = availableCars.find(c => c.id === currentImageIndex);
             if (!car) return;
-            setModalState({
-              ...modalState,
-              imageIndex: (modalState.imageIndex - 1 + car.images.length) % car.images.length
-            });
+            setCurrentImageIndex((prevIndex) => (prevIndex - 1 + car.images.length) % car.images.length);
           }}
           onNext={() => {
-            const car = availableCars.find(c => c.id === modalState.carId);
+            const car = availableCars.find(c => c.id === currentImageIndex);
             if (!car) return;
-            setModalState({
-              ...modalState,
-              imageIndex: (modalState.imageIndex + 1) % car.images.length
-            });
+            setCurrentImageIndex((prevIndex) => (prevIndex + 1) % car.images.length);
           }}
         />
       )}

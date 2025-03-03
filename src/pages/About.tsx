@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Award, Check, Star, Users, ThumbsUp, Repeat, Heart, Star as StarIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Award, Check, Star, Users, ThumbsUp, Repeat, Heart } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
 
@@ -114,6 +114,18 @@ const About = () => {
     }
   }, [isVisible]);
   
+  // Sayfa yüklendiğinde animasyonu başlat
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      setIsVisible(false);
+    };
+  }, []);
+  
   return (
     <div>
       <PageHeader 
@@ -214,7 +226,7 @@ const About = () => {
 
             <div className={`bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center transform transition-all duration-500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '450ms' }}>
               <div className="bg-amber-50 w-16 h-16 rounded-full flex items-center justify-center mb-6 mx-auto">
-                <StarIcon className="text-amber-500" size={28} />
+                <Star className="text-amber-500" size={28} />
               </div>
               <p className="text-3xl font-bold text-amber-500 mb-2">{ratingCount}/5</p>
               <p className="text-gray-600 font-medium">{t('about.stats.customerRating.label')}</p>

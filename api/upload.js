@@ -1,109 +1,69 @@
 // Vercel serverless function for image upload
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
+console.log('API Request received to /api/upload');
 console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-module.exports = async (req, res) => {
-  // Set CORS headers
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-  // Handle preflight request
+  console.log('Request method:', req.method);
+  
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // Only allow POST method
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    // Check if request has a file
-    if (!req.body || !req.body.image) {
-      return res.status(400).json({ error: 'No image data provided' });
-    }
-
-    // Get image data from request
-    const { image, filename } = req.body;
-    
-    // Validate image data (base64)
-    if (!image.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Invalid image format' });
-    }
-
-    // Extract base64 data
-    const base64Data = image.split(';base64,').pop();
-    
-    // Generate unique filename
-    const uniqueFilename = `${uuidv4()}-${filename || 'image.jpg'}`;
-    
-    console.log('Uploading to Supabase Storage, bucket: images, path: public/' + uniqueFilename);
-    
-    // Check if bucket exists
-    const { data: buckets, error: bucketsError } = await supabase
-      .storage
-      .listBuckets();
-    
-    if (bucketsError) {
-      console.error('Error listing buckets:', bucketsError);
-      return res.status(500).json({ error: 'Failed to list storage buckets', details: bucketsError });
-    }
-    
-    console.log('Available buckets:', buckets.map(b => b.name).join(', '));
-    
-    const imagesBucket = buckets.find(b => b.name === 'images');
-    
-    if (!imagesBucket) {
-      console.log('Creating images bucket...');
-      const { data: newBucket, error: createError } = await supabase
-        .storage
-        .createBucket('images', { public: true });
+  if (req.method === 'POST') {
+    try {
+      const { image, filename } = req.body;
       
-      if (createError) {
-        console.error('Error creating bucket:', createError);
-        return res.status(500).json({ error: 'Failed to create storage bucket', details: createError });
-      }
+      // Base64 formatındaki resmi Buffer'a çevir
+      const buffer = Buffer.from(image.split(',')[1], 'base64');
       
-      console.log('Bucket created:', newBucket);
-    }
-    
-    // Upload to Supabase Storage
-    const { data, error } = await supabase
-      .storage
-      .from('images')
-      .upload(`public/${uniqueFilename}`, Buffer.from(base64Data, 'base64'), {
-        contentType: image.split(';')[0].split(':')[1],
-        upsert: false
+      // Dosya uzantısını al
+      const fileExt = filename.split('.').pop();
+      const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Supabase Storage'a yükle
+      const { data, error } = await supabase.storage
+        .from('car-images')
+        .upload(uniqueFilename, buffer, {
+          contentType: `image/${fileExt}`,
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Yüklenen dosyanın public URL'sini al
+      const { data: { publicUrl } } = supabase.storage
+        .from('car-images')
+        .getPublicUrl(uniqueFilename);
+
+      return res.status(200).json({
+        success: true,
+        url: publicUrl,
+        filename: uniqueFilename
       });
-
-    if (error) {
-      console.error('Supabase storage upload error:', error);
-      return res.status(500).json({ error: 'Failed to upload image to storage', details: error });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return res.status(500).json({ error: 'Image upload failed' });
     }
-
-    // Get public URL
-    const { data: publicUrlData } = supabase
-      .storage
-      .from('images')
-      .getPublicUrl(`public/${uniqueFilename}`);
-
-    return res.status(200).json({ 
-      url: publicUrlData.publicUrl,
-      filename: uniqueFilename
-    });
-  } catch (error) {
-    console.error('Image upload error:', error);
-    return res.status(500).json({ error: 'Image upload failed', details: error.message });
   }
-};
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}

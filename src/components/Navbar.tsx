@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { Car, Menu, Phone, X } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Menu, X, Car } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const location = useLocation();
   const { t, i18n } = useTranslation();
 
   const isActive = (path: string) => {
