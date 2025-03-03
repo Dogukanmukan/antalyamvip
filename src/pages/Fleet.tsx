@@ -20,7 +20,7 @@ const Fleet = () => {
     const fetchCars = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3001/api/cars');
+        const response = await fetch('/api/cars');
         
         if (!response.ok) {
           throw new Error('Araçlar yüklenirken bir hata oluştu');

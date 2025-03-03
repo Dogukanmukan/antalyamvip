@@ -38,7 +38,7 @@ const AdminCars: React.FC = () => {
   const fetchCars = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/cars');
+      const response = await fetch('/api/cars');
       if (!response.ok) {
         throw new Error('Araçlar yüklenirken bir hata oluştu');
       }
@@ -59,7 +59,7 @@ const AdminCars: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/cars/${id}`, {
+      const response = await fetch(`/api/cars/${id}`, {
         method: 'DELETE',
       });
 
@@ -83,7 +83,7 @@ const AdminCars: React.FC = () => {
 
     try {
       setSeedLoading(true);
-      const response = await fetch('http://localhost:3001/api/seed-cars', {
+      const response = await fetch('/api/seed-cars', {
         method: 'POST',
       });
 

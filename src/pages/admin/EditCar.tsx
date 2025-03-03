@@ -63,7 +63,7 @@ const EditCar: React.FC = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3001/api/cars/${id}`);
+      const response = await fetch(`/api/cars/${id}`);
       
       if (!response.ok) {
         throw new Error('Araç bilgileri alınamadı');
@@ -96,7 +96,7 @@ const EditCar: React.FC = () => {
         formData.append('images', file);
       });
       
-      const response = await fetch('http://localhost:3001/api/upload-multiple', {
+      const response = await fetch('/api/upload-multiple', {
         method: 'POST',
         body: formData,
       });
@@ -182,8 +182,8 @@ const EditCar: React.FC = () => {
       }
       
       const url = id 
-        ? `http://localhost:3001/api/cars/${id}` 
-        : 'http://localhost:3001/api/cars';
+        ? `/api/cars/${id}` 
+        : '/api/cars';
       
       const method = id ? 'PUT' : 'POST';
       
