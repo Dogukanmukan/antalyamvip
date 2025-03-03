@@ -4,8 +4,12 @@ require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 module.exports = async (req, res) => {
@@ -44,6 +48,36 @@ module.exports = async (req, res) => {
     // Generate unique filename
     const uniqueFilename = `${uuidv4()}-${filename || 'image.jpg'}`;
     
+    console.log('Uploading to Supabase Storage, bucket: images, path: public/' + uniqueFilename);
+    
+    // Check if bucket exists
+    const { data: buckets, error: bucketsError } = await supabase
+      .storage
+      .listBuckets();
+    
+    if (bucketsError) {
+      console.error('Error listing buckets:', bucketsError);
+      return res.status(500).json({ error: 'Failed to list storage buckets', details: bucketsError });
+    }
+    
+    console.log('Available buckets:', buckets.map(b => b.name).join(', '));
+    
+    const imagesBucket = buckets.find(b => b.name === 'images');
+    
+    if (!imagesBucket) {
+      console.log('Creating images bucket...');
+      const { data: newBucket, error: createError } = await supabase
+        .storage
+        .createBucket('images', { public: true });
+      
+      if (createError) {
+        console.error('Error creating bucket:', createError);
+        return res.status(500).json({ error: 'Failed to create storage bucket', details: createError });
+      }
+      
+      console.log('Bucket created:', newBucket);
+    }
+    
     // Upload to Supabase Storage
     const { data, error } = await supabase
       .storage
@@ -55,7 +89,7 @@ module.exports = async (req, res) => {
 
     if (error) {
       console.error('Supabase storage upload error:', error);
-      return res.status(500).json({ error: 'Failed to upload image to storage' });
+      return res.status(500).json({ error: 'Failed to upload image to storage', details: error });
     }
 
     // Get public URL
@@ -70,6 +104,6 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error('Image upload error:', error);
-    return res.status(500).json({ error: 'Image upload failed' });
+    return res.status(500).json({ error: 'Image upload failed', details: error.message });
   }
 };

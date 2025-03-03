@@ -2,11 +2,14 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
-const busboy = require('busboy');
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 module.exports = async (req, res) => {
@@ -26,89 +29,95 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Parse multipart form data
-    const bb = busboy({ headers: req.headers });
-    const files = [];
+    // Check if request has images
+    if (!req.body || !req.body.images || !Array.isArray(req.body.images)) {
+      return res.status(400).json({ error: 'No image data provided or invalid format' });
+    }
+
+    // Get images data from request
+    const { images } = req.body;
     
-    // Process file upload
-    bb.on('file', (name, file, info) => {
-      const { filename, encoding, mimeType } = info;
+    console.log(`Processing ${images.length} images`);
+    
+    // Check if bucket exists
+    const { data: buckets, error: bucketsError } = await supabase
+      .storage
+      .listBuckets();
+    
+    if (bucketsError) {
+      console.error('Error listing buckets:', bucketsError);
+      return res.status(500).json({ error: 'Failed to list storage buckets', details: bucketsError });
+    }
+    
+    console.log('Available buckets:', buckets.map(b => b.name).join(', '));
+    
+    const imagesBucket = buckets.find(b => b.name === 'images');
+    
+    if (!imagesBucket) {
+      console.log('Creating images bucket...');
+      const { data: newBucket, error: createError } = await supabase
+        .storage
+        .createBucket('images', { public: true });
       
-      // Only accept images
-      if (!mimeType.startsWith('image/')) {
-        return;
+      if (createError) {
+        console.error('Error creating bucket:', createError);
+        return res.status(500).json({ error: 'Failed to create storage bucket', details: createError });
       }
       
-      const chunks = [];
+      console.log('Bucket created:', newBucket);
+    }
+
+    // Process each image
+    const uploadPromises = images.map(async (imageData, index) => {
+      // Validate image data (base64)
+      if (!imageData.image || !imageData.image.startsWith('data:image/')) {
+        throw new Error(`Invalid image format for image ${index}`);
+      }
+
+      // Extract base64 data
+      const base64Data = imageData.image.split(';base64,').pop();
       
-      file.on('data', (data) => {
-        chunks.push(data);
-      });
+      // Generate unique filename
+      const uniqueFilename = `${uuidv4()}-${imageData.filename || `image${index}.jpg`}`;
       
-      file.on('end', () => {
-        files.push({
-          buffer: Buffer.concat(chunks),
-          filename,
-          mimeType
+      console.log(`Uploading image ${index + 1}/${images.length} to Supabase Storage`);
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase
+        .storage
+        .from('images')
+        .upload(`public/${uniqueFilename}`, Buffer.from(base64Data, 'base64'), {
+          contentType: imageData.image.split(';')[0].split(':')[1],
+          upsert: false
         });
-      });
+
+      if (error) {
+        console.error(`Supabase storage upload error for image ${index}:`, error);
+        throw new Error(`Failed to upload image ${index} to storage: ${error.message}`);
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('images')
+        .getPublicUrl(`public/${uniqueFilename}`);
+
+      return { 
+        url: publicUrlData.publicUrl,
+        filename: uniqueFilename
+      };
     });
-    
-    // Handle form parsing completion
-    const uploadPromise = new Promise((resolve, reject) => {
-      bb.on('close', async () => {
-        try {
-          // Upload all files to Supabase Storage
-          const uploadResults = await Promise.all(
-            files.map(async (file) => {
-              const uniqueFilename = `${uuidv4()}-${file.filename}`;
-              
-              const { data, error } = await supabase
-                .storage
-                .from('images')
-                .upload(`public/${uniqueFilename}`, file.buffer, {
-                  contentType: file.mimeType,
-                  upsert: false
-                });
-              
-              if (error) {
-                throw error;
-              }
-              
-              // Get public URL
-              const { data: publicUrlData } = supabase
-                .storage
-                .from('images')
-                .getPublicUrl(`public/${uniqueFilename}`);
-              
-              return {
-                url: publicUrlData.publicUrl,
-                filename: uniqueFilename,
-                originalname: file.filename
-              };
-            })
-          );
-          
-          resolve(uploadResults);
-        } catch (error) {
-          reject(error);
-        }
-      });
-      
-      bb.on('error', (error) => {
-        reject(error);
-      });
-    });
-    
-    // Pass request to busboy for processing
-    req.pipe(bb);
-    
+
     // Wait for all uploads to complete
-    const uploadResults = await uploadPromise;
+    const results = await Promise.all(uploadPromises);
     
-    return res.status(200).json({ files: uploadResults });
+    console.log(`Successfully uploaded ${results.length} images`);
+    
+    return res.status(200).json({ 
+      urls: results
+    });
   } catch (error) {
     console.error('Multiple image upload error:', error);
-    return res.status(500).json({ error: 'Multiple image upload failed' });
+    return res.status(500).json({ error: 'Image upload failed', details: error.message });
   }
 };
