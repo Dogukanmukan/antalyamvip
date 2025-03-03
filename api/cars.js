@@ -7,13 +7,19 @@ dotenv.config();
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing Supabase credentials. URL or key is empty.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
   console.log('API Request received to /api/cars');
   console.log('Request method:', req.method);
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -40,7 +46,13 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Error in cars handler:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message, stack: error.stack });
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message, 
+      stack: error.stack,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+    });
   }
 }
 
@@ -55,9 +67,17 @@ async function getCars(req, res) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
 
-    console.log(`Successfully fetched ${data.length} cars`);
+    console.log(`Successfully fetched ${data ? data.length : 0} cars`);
+    
+    if (!data || data.length === 0) {
+      console.log('No cars found in database');
+      return res.status(200).json([]);
+    }
     
     // Process arrays for response
     const processedData = data.map(car => ({
@@ -69,20 +89,38 @@ async function getCars(req, res) {
     return res.status(200).json(processedData);
   } catch (error) {
     console.error('Error fetching cars:', error);
-    return res.status(500).json({ error: 'Failed to fetch cars' });
+    return res.status(500).json({ 
+      error: 'Failed to fetch cars', 
+      message: error.message,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+    });
   }
 }
 
 // Create a new car
 async function createCar(req, res) {
   console.log('Creating new car...');
-  console.log('Request body:', req.body);
+  console.log('Request body:', JSON.stringify(req.body));
   
   try {
     const carData = req.body;
     
-    if (!carData || !carData.name || !carData.category) {
-      return res.status(400).json({ error: 'Name and category are required' });
+    if (!carData) {
+      console.error('No car data provided');
+      return res.status(400).json({ 
+        success: false,
+        error: 'No car data provided' 
+      });
+    }
+    
+    // Validate required fields
+    if (!carData.name || !carData.category) {
+      console.error('Missing required fields: name or category');
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name and category are required' 
+      });
     }
     
     // Process arrays for storage
@@ -92,13 +130,23 @@ async function createCar(req, res) {
       features: Array.isArray(carData.features) ? JSON.stringify(carData.features) : carData.features
     };
     
+    console.log('Processed car data:', JSON.stringify(processedData));
+    
     // Insert car into database
     const { data, error } = await supabase
       .from('cars')
       .insert([processedData])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      console.error('No data returned from insert operation');
+      throw new Error('No data returned from insert operation');
+    }
 
     console.log('Car created successfully:', data[0].id);
     
@@ -109,9 +157,18 @@ async function createCar(req, res) {
       features: typeof data[0].features === 'string' ? JSON.parse(data[0].features) : data[0].features || []
     };
     
-    return res.status(201).json(processedResponse);
+    return res.status(201).json({
+      success: true,
+      car: processedResponse
+    });
   } catch (error) {
     console.error('Error creating car:', error);
-    return res.status(500).json({ error: 'Failed to create car' });
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to create car',
+      message: error.message,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+    });
   }
 }
