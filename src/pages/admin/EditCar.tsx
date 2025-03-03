@@ -86,30 +86,50 @@ const EditCar: React.FC = () => {
     if (imageFiles.length === 0) return;
     
     setUploading(true);
-    setUploadError(null);
+    setError(null);
     
     try {
-      const formData = new FormData();
-      
-      // Birden fazla resim ekle
-      imageFiles.forEach(file => {
-        formData.append('images', file);
+      // Base64 formatına dönüştürme işlemi
+      const uploadPromises = imageFiles.map(file => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            resolve({
+              image: e.target?.result,
+              filename: file.name
+            });
+          };
+          reader.onerror = (e) => {
+            reject(e);
+          };
+          reader.readAsDataURL(file);
+        });
       });
       
-      const response = await fetch('/api/upload-multiple', {
-        method: 'POST',
-        body: formData,
-      });
+      const base64Files = await Promise.all(uploadPromises);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Resim yüklenirken bir hata oluştu');
-      }
-      
-      const data = await response.json();
+      // Her bir resmi ayrı ayrı yükle
+      const uploadResults = await Promise.all(
+        base64Files.map(async (fileData: any) => {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(fileData),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Resim yüklenirken bir hata oluştu');
+          }
+          
+          return await response.json();
+        })
+      );
       
       // Yeni resimleri ekle
-      const newImageUrls = data.files.map((file: any) => file.url);
+      const newImageUrls = uploadResults.map((result) => result.url);
       setImages(prev => [...prev, ...newImageUrls]);
       
       // Yüklenen dosyaları temizle
@@ -119,9 +139,9 @@ const EditCar: React.FC = () => {
       }
       
       // setSuccess('Resimler başarıyla yüklendi');
-    } catch (error) {
-      console.error('Resim yükleme hatası:', error);
-      setUploadError(error instanceof Error ? error.message : 'Resim yüklenirken bir hata oluştu');
+    } catch (err) {
+      console.error('Resim yükleme hatası:', err);
+      setError(err.message || 'Resim yüklenirken bir hata oluştu');
     } finally {
       setUploading(false);
     }
