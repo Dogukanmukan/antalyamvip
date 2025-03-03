@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookingFormData } from '../types/booking';
 import { Car } from '../types';
-import { cars } from '../data/cars';
 import { Calendar, Clock, MapPin, Users, Car as CarIcon, Check, ChevronLeft, ChevronRight, Phone, Mail, User, MessageSquare } from 'lucide-react';
 import ImageModal from '../components/ImageModal';
 
@@ -31,29 +30,45 @@ const BookingResults: React.FC = () => {
     phone: false,
     email: false
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchCars = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/cars');
+      if (!response.ok) {
+        throw new Error('Araçlar yüklenirken bir hata oluştu');
+      }
+      const carsData = await response.json();
+      return carsData;
+    } catch (error) {
+      console.error('Araçları getirme hatası:', error);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Retrieve booking data from location state
     if (location.state && location.state.bookingData) {
       setBookingData(location.state.bookingData);
       
-      // Filter cars based on passengers
-      const data = location.state.bookingData as BookingFormData;
-      let filteredCars = cars;
-      
-      // Filter by passenger capacity
-      filteredCars = filteredCars.filter(car => car.seats >= data.passengers);
-      
-      setAvailableCars(filteredCars);
-      
-      // Initialize current image indexes
-      const initialIndexes: Record<number, number> = {};
-      filteredCars.forEach(car => {
-        initialIndexes[car.id] = 0;
+      fetchCars().then(carsData => {
+        const data = location.state.bookingData as BookingFormData;
+        
+        let filteredCars = carsData.filter((car: Car) => car.seats >= data.passengers);
+        
+        setAvailableCars(filteredCars);
+        
+        const initialIndexes: Record<number, number> = {};
+        filteredCars.forEach((car: Car) => {
+          initialIndexes[car.id] = 0;
+        });
+        setCurrentImageIndexes(initialIndexes);
       });
-      setCurrentImageIndexes(initialIndexes);
       
-      // Set contact info from booking data if available
+      const data = location.state.bookingData as BookingFormData;
       if (data.contactInfo) {
         setContactInfo({
           fullName: data.contactInfo.fullName || '',
@@ -63,7 +78,6 @@ const BookingResults: React.FC = () => {
         });
       }
     } else {
-      // If no booking data, redirect back to booking page
       navigate('/');
     }
   }, [location, navigate]);
@@ -83,27 +97,118 @@ const BookingResults: React.FC = () => {
     return !Object.values(errors).some(error => error);
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
+    if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
+      alert(t('booking.fillContactInfo'));
+      return;
+    }
+
     if (!selectedCar) {
-      alert(t('bookingResults.selectVehicleAlert'));
+      alert(t('booking.selectCar'));
       return;
     }
-    
-    if (!validateForm()) {
-      return;
+
+    setIsSubmitting(true);
+
+    try {
+      const completeBookingData = {
+        tripType: bookingData?.tripType || 'oneWay',
+        pickupLocation: bookingData?.pickupLocation || '',
+        dropoffLocation: bookingData?.dropoffLocation || '',
+        pickupDate: bookingData?.pickupDate || '',
+        pickupTime: bookingData?.pickupTime || '',
+        returnPickupLocation: bookingData?.returnPickupLocation || '',
+        returnDropoffLocation: bookingData?.returnDropoffLocation || '',
+        returnDate: bookingData?.returnDate || '',
+        returnTime: bookingData?.returnTime || '',
+        passengers: bookingData?.passengers || 1,
+        selectedCar,
+        contactInfo
+      };
+      
+      console.log('Gönderilecek veri:', completeBookingData);
+      
+      const fixDate = (dateStr: string | undefined) => {
+        if (!dateStr) return '';
+        
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateStr; 
+        }
+        
+        if (dateStr.startsWith('00')) {
+          return `2024${dateStr.substring(4)}`;
+        }
+        
+        console.warn('Geçersiz tarih formatı:', dateStr);
+        return '2024-01-01'; 
+      };
+      
+      const fixedPickupDate = fixDate(bookingData?.pickupDate);
+      const fixedReturnDate = bookingData?.tripType === 'roundTrip' ? 
+        fixDate(bookingData?.returnDate) : '';
+      
+      console.log('Düzeltilmiş tarihler:', {
+        originalPickup: bookingData?.pickupDate,
+        fixedPickup: fixedPickupDate,
+        originalReturn: bookingData?.returnDate,
+        fixedReturn: fixedReturnDate
+      });
+      
+      const pickupDateTime = new Date(`${fixedPickupDate}T${bookingData?.pickupTime || '12:00'}`);
+      
+      let returnDateTime;
+      if (bookingData?.tripType === 'roundTrip' && fixedReturnDate) {
+        returnDateTime = new Date(`${fixedReturnDate}T${bookingData?.returnTime || '12:00'}`);
+      }
+      
+      console.log('Oluşturulan tarihler:', {
+        pickupDateTime: pickupDateTime.toISOString(),
+        returnDateTime: returnDateTime ? returnDateTime.toISOString() : null,
+        pickupValid: !isNaN(pickupDateTime.getTime()),
+        returnValid: returnDateTime ? !isNaN(returnDateTime.getTime()) : null
+      });
+      
+      completeBookingData.pickupDate = fixedPickupDate;
+      completeBookingData.returnDate = fixedReturnDate;
+      
+      const bookingPayload = {
+        ...completeBookingData,
+        selectedCar: selectedCar ? { id: selectedCar.id } : null
+      };
+      
+      console.log('API\'ye gönderilecek veri:', bookingPayload);
+      
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingPayload),
+      });
+      
+      console.log('API yanıtı:', response);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API hata yanıtı:', errorText);
+        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('API yanıt verisi:', data);
+      
+      if (data.success) {
+        alert(t('booking.successMessage'));
+        navigate('/');
+      } else {
+        alert(data.message || t('booking.errorMessage'));
+      }
+    } catch (error) {
+      console.error('Rezervasyon oluşturma hatası:', error);
+      alert(t('booking.errorMessage'));
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // In a real app, you would send the booking data to your backend
-    const completeBookingData = {
-      ...bookingData,
-      selectedCar,
-      contactInfo
-    };
-    
-    console.log('Complete booking data:', completeBookingData);
-    
-    alert(t('booking.successMessage'));
-    navigate('/');
   };
 
   const nextImage = (e: React.MouseEvent, carId: number) => {
@@ -153,6 +258,18 @@ const BookingResults: React.FC = () => {
         <h2 className="text-xl font-semibold mb-4">{t('bookingResults.summary')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="flex items-start">
+            <div className="text-amber-500 mr-3 mt-1">
+              {bookingData.tripType === 'oneWay' ? 
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg> : 
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h18"></path><path d="m6 10 3-3-3-3"></path><path d="M21 17H3"></path><path d="m18 14-3 3 3 3"></path></svg>
+              }
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">{t('booking.tripType')}</p>
+              <p className="font-medium">{bookingData.tripType === 'oneWay' ? t('booking.oneWay') : t('booking.roundTrip')}</p>
+            </div>
+          </div>
+          <div className="flex items-start">
             <MapPin className="text-amber-500 mr-3 mt-1" size={20} />
             <div>
               <p className="text-sm text-gray-500">{t('booking.pickupLocation')}</p>
@@ -180,20 +297,38 @@ const BookingResults: React.FC = () => {
               <p className="font-medium">{bookingData.pickupTime}</p>
             </div>
           </div>
-          <div className="flex items-start">
-            <Calendar className="text-amber-500 mr-3 mt-1" size={20} />
-            <div>
-              <p className="text-sm text-gray-500">{t('booking.dropoffDate')}</p>
-              <p className="font-medium">{bookingData.dropoffDate}</p>
-            </div>
-          </div>
-          <div className="flex items-start">
-            <Clock className="text-amber-500 mr-3 mt-1" size={20} />
-            <div>
-              <p className="text-sm text-gray-500">{t('booking.dropoffTime')}</p>
-              <p className="font-medium">{bookingData.dropoffTime}</p>
-            </div>
-          </div>
+          {bookingData.tripType === 'roundTrip' && (
+            <>
+              <div className="flex items-start">
+                <MapPin className="text-amber-500 mr-3 mt-1" size={20} />
+                <div>
+                  <p className="text-sm text-gray-500">{t('booking.returnPickupLocation')}</p>
+                  <p className="font-medium">{bookingData.returnPickupLocation}</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <MapPin className="text-amber-500 mr-3 mt-1" size={20} />
+                <div>
+                  <p className="text-sm text-gray-500">{t('booking.returnDropoffLocation')}</p>
+                  <p className="font-medium">{bookingData.returnDropoffLocation}</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <Calendar className="text-amber-500 mr-3 mt-1" size={20} />
+                <div>
+                  <p className="text-sm text-gray-500">{t('booking.returnDate')}</p>
+                  <p className="font-medium">{bookingData.returnDate}</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <Clock className="text-amber-500 mr-3 mt-1" size={20} />
+                <div>
+                  <p className="text-sm text-gray-500">{t('booking.returnTime')}</p>
+                  <p className="font-medium">{bookingData.returnTime}</p>
+                </div>
+              </div>
+            </>
+          )}
           <div className="flex items-start">
             <Users className="text-amber-500 mr-3 mt-1" size={20} />
             <div>
@@ -209,7 +344,11 @@ const BookingResults: React.FC = () => {
       {/* Available Cars */}
       <h2 className="text-2xl font-semibold mb-4">{t('bookingResults.availableVehicles')}</h2>
       
-      {availableCars.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <p>{t('bookingResults.loadingCars')}</p>
+        </div>
+      ) : availableCars.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
           <p>{t('bookingResults.noVehicles')}</p>
         </div>
@@ -401,14 +540,14 @@ const BookingResults: React.FC = () => {
       <div className="mt-8 flex justify-center">
         <button
           onClick={handleConfirmBooking}
-          disabled={!selectedCar}
+          disabled={!selectedCar || isSubmitting}
           className={`px-8 py-3 rounded-md text-lg font-bold flex items-center ${
-            selectedCar 
+            selectedCar && !isSubmitting 
               ? 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           } transition duration-300`}
         >
-          {t('bookingResults.confirmButton')}
+          {isSubmitting ? t('bookingResults.confirming') : t('bookingResults.confirmButton')}
         </button>
       </div>
       

@@ -1,10 +1,16 @@
 export interface BookingFormData {
+  tripType: 'oneWay' | 'roundTrip';
+  // Outbound journey
   pickupLocation: string;
   dropoffLocation: string;
   pickupDate: string;
   pickupTime: string;
-  dropoffDate: string;
-  dropoffTime: string;
+  // Return journey
+  returnPickupLocation: string;
+  returnDropoffLocation: string;
+  returnDate: string;
+  returnTime: string;
+  // Other details
   passengers: number;
   contactInfo: {
     fullName: string;

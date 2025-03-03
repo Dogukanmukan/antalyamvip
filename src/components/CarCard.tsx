@@ -56,64 +56,66 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
               >
                 <ChevronRight size={20} />
               </button>
-              
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                {car.images.map((_, index) => (
-                  <span 
-                    key={index} 
-                    className={`w-2 h-2 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/50'}`}
-                  />
-                ))}
+              <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                {currentImageIndex + 1} / {car.images.length}
               </div>
             </>
           )}
           
-          <div className="absolute top-4 right-4 bg-amber-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-            {car.category === 'Luxury' ? t('fleet.categories.luxury') :
-             car.category === 'VIP' ? t('fleet.categories.vip') :
-             car.category === 'Ultra Luxury' ? t('fleet.categories.ultraLuxury') : car.category}
+          <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">
+            {car.category}
           </div>
         </div>
         
         <div className="p-6">
           <h3 className="text-xl font-bold mb-2">{car.name}</h3>
           
-          <div className="flex items-center text-gray-500 mb-4">
-            <Clock size={16} className="mr-1" />
-            <span className="text-sm">{car.year}</span>
-            <span className="mx-2">•</span>
-            <Fuel size={16} className="mr-1" />
-            <span className="text-sm">{car.fuelType}</span>
-            <span className="mx-2">•</span>
-            <Users size={16} className="mr-1" />
-            <span className="text-sm">{car.seats} {t('fleet.seats')}</span>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex items-center text-gray-600">
+              <Calendar size={16} className="mr-2 text-amber-500" />
+              <span className="text-sm">{car.year}</span>
+            </div>
+            <div className="flex items-center text-gray-600">
+              <Fuel size={16} className="mr-2 text-amber-500" />
+              <span className="text-sm">{car.fuel_type || car.fuelType}</span>
+            </div>
+            <div className="flex items-center text-gray-600">
+              <Users size={16} className="mr-2 text-amber-500" />
+              <span className="text-sm">{car.seats} {t('common.seats')}</span>
+            </div>
+            <div className="flex items-center text-gray-600">
+              <Clock size={16} className="mr-2 text-amber-500" />
+              <span className="text-sm">{t('common.24hours')}</span>
+            </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 mb-6">
-            {car.features.map((feature, index) => (
-              <span key={index} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs">
-                {t(`carFeatures.${feature.toLowerCase().replace(/\s+/g, '')}`)}
-              </span>
-            ))}
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Link to="/#booking" className="w-full flex items-center justify-center bg-black hover:bg-gray-900 text-white px-4 py-2 rounded-md transition duration-300">
-              <Calendar className="mr-2" size={18} />
-              {t('general.bookNow')}
-            </Link>
+          <div className="border-t border-gray-100 pt-4 mt-4">
+            <div className="flex justify-between items-center">
+              <div>
+                {car.price_per_day && (
+                  <div className="text-amber-500 font-bold">
+                    {car.price_per_day} ₺ <span className="text-gray-500 text-sm font-normal">/ {t('common.day')}</span>
+                  </div>
+                )}
+              </div>
+              <Link 
+                to="/#booking" 
+                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md text-sm transition duration-300"
+              >
+                {t('common.bookNow')}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
       
-      <ImageModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        images={car.images}
-        currentIndex={currentImageIndex}
-        onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + car.images.length) % car.images.length)}
-        onNext={() => setCurrentImageIndex((prev) => (prev + 1) % car.images.length)}
-      />
+      {isModalOpen && (
+        <ImageModal 
+          images={car.images} 
+          initialIndex={currentImageIndex}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </>
   );
 };

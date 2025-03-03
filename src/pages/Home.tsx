@@ -1,14 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Car, ChevronRight, Crown, MapPin, Phone, Shield, Star, Users } from 'lucide-react';
 import CarCard from '../components/CarCard';
-import { cars } from '../data/cars';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import BookingForm from '../components/BookingForm';
 import HeroSlider from '../components/HeroSlider';
+import { Car as CarType } from '../types';
 
 function Home() {
   const { t } = useTranslation();
+  const [featuredCars, setFeaturedCars] = useState<CarType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Veritabanından araçları çek
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/cars');
+        
+        if (!response.ok) {
+          throw new Error('Araçlar yüklenirken bir hata oluştu');
+        }
+        
+        const data = await response.json();
+        // İlk 3 aracı öne çıkan araçlar olarak göster
+        setFeaturedCars(data.slice(0, 3));
+      } catch (err) {
+        console.error('Error fetching cars:', err);
+        setError('Araçlar yüklenirken bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCars();
+  }, []);
   
   const heroImages = [
     {
@@ -78,11 +106,22 @@ function Home() {
             <p className="text-gray-600 max-w-2xl mx-auto">{t('home.featuredCars.subtitle')}</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {cars.slice(0, 3).map(car => (
-              <CarCard key={car.id} car={car} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-10">
+              <div className="spinner mx-auto"></div>
+              <p className="mt-2 text-gray-600">{t('common.loading')}</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-10">
+              <p className="text-red-500">{error}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredCars.map(car => (
+                <CarCard key={car.id} car={car} />
+              ))}
+            </div>
+          )}
           
           <div className="text-center mt-12">
             <Link to="/fleet" className="inline-flex items-center text-amber-500 font-semibold hover:text-amber-600 transition">

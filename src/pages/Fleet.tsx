@@ -1,16 +1,44 @@
-import React, { useState } from 'react';
-import { Car, Filter, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Car as CarIcon, Filter, Search } from 'lucide-react';
 import CarCard from '../components/CarCard';
-import { cars } from '../data/cars';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
+import { Car } from '../types';
 
 const Fleet = () => {
   const { t } = useTranslation();
   
-  const [filteredCars, setFilteredCars] = useState(cars);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [filteredCars, setFilteredCars] = useState<Car[]>([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Veritabanından araçları çek
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:3001/api/cars');
+        
+        if (!response.ok) {
+          throw new Error('Araçlar yüklenirken bir hata oluştu');
+        }
+        
+        const data = await response.json();
+        setCars(data);
+        setFilteredCars(data);
+      } catch (err) {
+        console.error('Error fetching cars:', err);
+        setError('Araçlar yüklenirken bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCars();
+  }, []);
 
   const categories = ['All', ...new Set(cars.map(car => car.category))];
 
@@ -91,20 +119,41 @@ const Fleet = () => {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-16">
+              <div className="spinner mx-auto"></div>
+              <p className="text-gray-500 mt-4">{t('common.loading')}</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="text-center py-16">
+              <div className="text-red-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-2">{t('common.error')}</h3>
+              <p className="text-gray-500">{error}</p>
+            </div>
+          )}
+
           {/* Fleet Grid */}
-          {filteredCars.length > 0 ? (
+          {!loading && !error && filteredCars.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredCars.map((car) => (
                 <CarCard key={car.id} car={car} />
               ))}
             </div>
-          ) : (
+          ) : !loading && !error ? (
             <div className="text-center py-16">
-              <Car className="mx-auto text-gray-300" size={64} />
+              <CarIcon className="mx-auto text-gray-300" size={64} />
               <h3 className="text-xl font-bold mt-4 mb-2">{t('fleet.noVehicles')}</h3>
               <p className="text-gray-500">{t('fleet.adjustSearch')}</p>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
     </div>

@@ -1,50 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   images: string[];
-  currentIndex: number;
-  onPrev: () => void;
-  onNext: () => void;
+  initialIndex: number;
+  onClose: () => void;
 }
 
-const ImageModal: React.FC<ImageModalProps> = ({
-  isOpen,
-  onClose,
-  images,
-  currentIndex,
-  onPrev,
-  onNext
-}) => {
+const ImageModal: React.FC<ImageModalProps> = ({ images, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  
+  // ESC tuşu ile kapatma
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') onPrev();
-      if (e.key === 'ArrowRight') onNext();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') nextImage();
     };
     
     window.addEventListener('keydown', handleKeyDown);
-    
-    // Disable body scroll when modal is open
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    }
+    document.body.style.overflow = 'hidden'; // Scroll'u engelle
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = 'auto'; // Scroll'u geri aç
     };
-  }, [isOpen, onClose, onPrev, onNext]);
+  }, [onClose]);
   
-  if (!isOpen) return null;
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+  
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
-      <div className="relative w-full h-full flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="relative max-w-4xl w-full max-h-[90vh] p-2" onClick={(e) => e.stopPropagation()}>
         <button 
           className="absolute top-4 right-4 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
           onClick={onClose}
@@ -52,64 +45,45 @@ const ImageModal: React.FC<ImageModalProps> = ({
           <X size={24} />
         </button>
         
-        <button 
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <button 
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-        >
-          <ChevronRight size={24} />
-        </button>
-        
-        <div className="max-w-7xl max-h-full flex items-center justify-center">
+        <div className="relative h-full">
           <img 
             src={images[currentIndex]} 
-            alt="Enlarged view" 
-            className="max-w-full max-h-[90vh] object-contain"
+            alt="Gallery image" 
+            className="w-full h-full object-contain"
           />
-        </div>
-        
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2">
-          {images.map((_, index) => (
-            <span 
-              key={index} 
-              className={`w-3 h-3 rounded-full cursor-pointer ${currentIndex === index ? 'bg-white' : 'bg-white/50'}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                // Update current index directly
-                const newIndex = index;
-                if (newIndex !== currentIndex) {
-                  // Call a function that would update the parent's state
-                  const goToIndex = () => {
-                    // This is a simple implementation that just calls onNext or onPrev
-                    // multiple times to reach the desired index
-                    let tempIndex = currentIndex;
-                    while (tempIndex !== newIndex) {
-                      if (tempIndex < newIndex) {
-                        onNext();
-                        tempIndex = (tempIndex + 1) % images.length;
-                      } else {
-                        onPrev();
-                        tempIndex = (tempIndex - 1 + images.length) % images.length;
-                      }
-                    }
-                  };
-                  goToIndex();
-                }
-              }}
-            />
-          ))}
+          
+          {images.length > 1 && (
+            <>
+              <button 
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button 
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70"
+              >
+                <ChevronRight size={24} />
+              </button>
+              
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                {images.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-3 h-3 rounded-full ${
+                      currentIndex === index ? 'bg-white' : 'bg-white/50'
+                    }`}
+                    onClick={() => setCurrentIndex(index)}
+                  />
+                ))}
+              </div>
+              
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white text-sm px-3 py-1 rounded">
+                {currentIndex + 1} / {images.length}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
