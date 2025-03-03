@@ -3,7 +3,7 @@ import { fetch } from '../lib/fetch';
 // Veritabanı başlatma
 export async function initializeDatabase() {
   try {
-    const response = await fetch('http://localhost:3001/api/init-db', {
+    const response = await fetch('/api/init-db', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -61,7 +61,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     }
     
     // Dosya yolunu URL olarak döndür
-    const fileUrl = `http://localhost:${port}/uploads/${req.file.filename}`;
+    const fileUrl = `/uploads/${req.file.filename}`;
     
     return res.status(200).json({ 
       url: fileUrl,
@@ -86,7 +86,7 @@ app.post('/api/upload-multiple', upload.array('images', 10), (req, res) => {
     
     // Dosya yollarını URL olarak döndür
     const fileUrls = files.map(file => ({
-      url: `http://localhost:${port}/uploads/${file.filename}`,
+      url: `/uploads/${file.filename}`,
       filename: file.filename,
       originalname: file.originalname,
       size: file.size
