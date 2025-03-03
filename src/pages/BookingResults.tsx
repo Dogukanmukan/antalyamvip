@@ -30,6 +30,7 @@ const BookingResults: React.FC = () => {
           throw new Error('Araçlar yüklenirken bir hata oluştu');
         }
         const data = await response.json();
+        console.log('Cars data:', data);
         setCars(data);
       } catch (error) {
         console.error('Araçları getirme hatası:', error);
@@ -49,12 +50,25 @@ const BookingResults: React.FC = () => {
     try {
       setIsSubmitting(true);
 
-      // Burada rezervasyon API'sine istek atılacak
+      // Booking API'sine gönderilecek veriyi hazırla
       const bookingDetails = {
-        ...bookingData,
+        trip_type: bookingData.tripType,
+        pickup_location: bookingData.pickupLocation,
+        dropoff_location: bookingData.dropoffLocation,
+        pickup_date: `${bookingData.pickupDate}T${bookingData.pickupTime}:00`,
+        return_pickup_location: bookingData.tripType === 'roundTrip' ? bookingData.returnPickupLocation : null,
+        return_dropoff_location: bookingData.tripType === 'roundTrip' ? bookingData.returnDropoffLocation : null,
+        return_date: bookingData.tripType === 'roundTrip' ? `${bookingData.returnDate}T${bookingData.returnTime}:00` : null,
+        passengers: bookingData.passengers,
         car_id: selectedCar.id,
-        ...contactInfo
+        full_name: contactInfo.fullName,
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        notes: contactInfo.notes || null,
+        status: 'pending'
       };
+
+      console.log('Sending booking data:', bookingDetails);
 
       const response = await fetch('/api/bookings', {
         method: 'POST',
@@ -65,19 +79,28 @@ const BookingResults: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Rezervasyon oluşturulurken bir hata oluştu');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Rezervasyon oluşturulurken bir hata oluştu');
+      }
+
+      const responseData = await response.json();
+      console.log('Booking response:', responseData);
+
+      if (!responseData.success) {
+        throw new Error(responseData.error || 'Rezervasyon oluşturulurken bir hata oluştu');
       }
 
       // Başarılı rezervasyon sonrası yönlendirme
       navigate('/booking-confirmation', { 
         state: { 
-          booking: bookingDetails,
+          booking: responseData.booking,
           car: selectedCar
         } 
       });
 
     } catch (error) {
       console.error('Rezervasyon hatası:', error);
+      alert(error instanceof Error ? error.message : 'Rezervasyon oluşturulurken bir hata oluştu');
     } finally {
       setIsSubmitting(false);
     }

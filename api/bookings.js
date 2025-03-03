@@ -1,0 +1,229 @@
+// Vercel serverless function for bookings
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  console.log('Request method:', req.method);
+  console.log('API Request received to /api/bookings');
+  console.log('Supabase URL:', supabaseUrl);
+  console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+  
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  try {
+    // Route based on HTTP method
+    switch (req.method) {
+      case 'GET':
+        return await getBookings(req, res);
+      case 'POST':
+        return await createBooking(req, res);
+      case 'PUT':
+        return await updateBooking(req, res);
+      default:
+        console.error('Method not allowed:', req.method);
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+  } catch (error) {
+    console.error('Error in bookings handler:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+}
+
+// Get all bookings
+async function getBookings(req, res) {
+  console.log('Fetching all bookings from Supabase...');
+  
+  try {
+    // Parse query parameters
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    const status = req.query.status;
+    
+    // Build query
+    let query = supabase
+      .from('bookings')
+      .select(`
+        *,
+        cars (
+          id,
+          name,
+          category,
+          price,
+          images
+        )
+      `);
+    
+    // Apply filters if provided
+    if (startDate) {
+      query = query.gte('pickup_date', startDate);
+    }
+    
+    if (endDate) {
+      query = query.lte('pickup_date', endDate);
+    }
+    
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
+    }
+    
+    // Order by created_at
+    query = query.order('created_at', { ascending: false });
+    
+    // Execute query
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    console.log(`Successfully fetched ${data.length} bookings`);
+    
+    // Process data if needed
+    const processedData = data.map(booking => ({
+      ...booking,
+      cars: booking.cars ? {
+        ...booking.cars,
+        images: typeof booking.cars.images === 'string' 
+          ? JSON.parse(booking.cars.images) 
+          : booking.cars.images || []
+      } : null
+    }));
+    
+    return res.status(200).json({
+      success: true,
+      bookings: processedData
+    });
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch bookings',
+      details: error.message
+    });
+  }
+}
+
+// Create a new booking
+async function createBooking(req, res) {
+  console.log('Creating new booking...');
+  console.log('Request body:', req.body);
+  
+  try {
+    const bookingData = req.body;
+    
+    // Validate required fields
+    if (!bookingData || !bookingData.pickup_location || !bookingData.dropoff_location || 
+        !bookingData.pickup_date || !bookingData.car_id || !bookingData.full_name || 
+        !bookingData.email || !bookingData.phone) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Required fields are missing' 
+      });
+    }
+    
+    // Set default status if not provided
+    if (!bookingData.status) {
+      bookingData.status = 'pending';
+    }
+    
+    // Insert booking into database
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert([bookingData])
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('No data returned from insert operation');
+    }
+
+    console.log('Booking created successfully:', data[0].id);
+    
+    return res.status(201).json({
+      success: true,
+      booking: data[0]
+    });
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to create booking',
+      details: error.message
+    });
+  }
+}
+
+// Update a booking
+async function updateBooking(req, res) {
+  console.log('Updating booking...');
+  console.log('Request body:', req.body);
+  
+  try {
+    const { id, ...updateData } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Booking ID is required' 
+      });
+    }
+    
+    // Update booking in database
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (data.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Booking not found' 
+      });
+    }
+
+    console.log('Booking updated successfully:', id);
+    
+    return res.status(200).json({
+      success: true,
+      booking: data[0]
+    });
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to update booking',
+      details: error.message
+    });
+  }
+} 

@@ -62,22 +62,23 @@ const AdminBookings: React.FC = () => {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
       
       const queryString = params.toString();
       const url = queryString ? `/api/bookings?${queryString}` : '/api/bookings';
 
+      console.log('Fetching bookings from:', url);
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Bookings data:', data);
 
       if (data.success) {
         let filteredBookings = data.bookings;
-
-        // Status filtresi uygula
-        if (statusFilter !== 'all') {
-          filteredBookings = filteredBookings.filter(
-            (booking: Booking) => booking.status === statusFilter
-          );
-        }
 
         // Durum sıralaması için yardımcı nesne
         const statusOrder: Record<string, number> = {
@@ -97,14 +98,14 @@ const AdminBookings: React.FC = () => {
           } else if (sortField === 'status') {
             const orderA = statusOrder[a.status] || 999;
             const orderB = statusOrder[b.status] || 999;
-            return orderA - orderB;
+            return sortDirection === 'asc' ? orderA - orderB : orderB - orderA;
           }
           return 0;
         });
 
         setBookings(sortedBookings);
       } else {
-        setError('Rezervasyonlar yüklenirken bir hata oluştu.');
+        setError(data.error || 'Rezervasyonlar yüklenirken bir hata oluştu.');
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -116,7 +117,7 @@ const AdminBookings: React.FC = () => {
 
   const updateBookingStatus = async (id: number, status: string) => {
     try {
-      const response = await fetch(`/api/bookings/${id}/status`, {
+      const response = await fetch(`/api/bookings/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ const AdminBookings: React.FC = () => {
 
         alert('Rezervasyon durumu güncellendi.');
       } else {
-        alert(data.message || 'Rezervasyon durumu güncellenirken bir hata oluştu.');
+        alert(data.error || 'Rezervasyon durumu güncellenirken bir hata oluştu.');
       }
     } catch (err) {
       console.error('Error updating booking status:', err);

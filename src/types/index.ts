@@ -64,7 +64,7 @@ export interface BookingFormData {
   returnTime: string;
   // Diğer detaylar
   passengers: number;
-  contactInfo: {
+  contactInfo?: {
     fullName: string;
     phone: string;
     email: string;
