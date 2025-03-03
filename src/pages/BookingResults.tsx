@@ -61,28 +61,49 @@ const BookingResults: React.FC = () => {
   const handleConfirmBooking = async () => {
     if (!selectedCar || !bookingData) return;
 
+    // Form validasyonu
+    if (!contactInfo.fullName || !contactInfo.phone || !contactInfo.email) {
+      setError(t('bookingResults.fillContactInfo'));
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
       setSuccess(null);
+
+      console.log('Preparing booking data...');
+
+      // Tarih formatını düzelt - ISO formatına çevir
+      const formatDateForAPI = (dateStr: string) => {
+        if (!dateStr) return null;
+        // Tarih zaten ISO formatında ise doğrudan kullan
+        if (dateStr.includes('T')) return dateStr;
+        
+        // Değilse ISO formatına çevir
+        const date = new Date(dateStr);
+        return date.toISOString();
+      };
 
       // Rezervasyon verilerini hazırla
       const bookingDetails = {
         trip_type: bookingData.tripType,
         pickup_location: bookingData.pickupLocation,
         dropoff_location: bookingData.dropoffLocation,
-        pickup_date: bookingData.pickupDate,
-        return_pickup_location: bookingData.returnPickupLocation,
-        return_dropoff_location: bookingData.returnDropoffLocation,
-        return_date: bookingData.returnDate,
+        pickup_date: formatDateForAPI(bookingData.pickupDate),
+        return_pickup_location: bookingData.tripType === 'roundTrip' ? bookingData.returnPickupLocation : null,
+        return_dropoff_location: bookingData.tripType === 'roundTrip' ? bookingData.returnDropoffLocation : null,
+        return_date: bookingData.tripType === 'roundTrip' ? formatDateForAPI(bookingData.returnDate) : null,
         passengers: bookingData.passengers,
         car_id: selectedCar.id,
         full_name: contactInfo.fullName,
         email: contactInfo.email,
         phone: contactInfo.phone,
-        notes: contactInfo.notes,
+        notes: contactInfo.notes || '',
         status: 'pending'
       };
+
+      console.log('Sending booking data:', bookingDetails);
 
       // API'ye gönder
       const response = await fetch('/api/bookings', {
@@ -96,9 +117,11 @@ const BookingResults: React.FC = () => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Rezervasyon oluşturulurken bir hata oluştu');
+        console.error('API error response:', result);
+        throw new Error(result.error || result.message || 'Rezervasyon oluşturulurken bir hata oluştu');
       }
 
+      console.log('Booking created successfully:', result);
       setSuccess('Rezervasyonunuz başarıyla oluşturuldu!');
 
       // Başarılı rezervasyon sonrası yönlendirme

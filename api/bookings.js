@@ -7,6 +7,14 @@ dotenv.config();
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing Supabase credentials. URL or key is empty.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
@@ -18,8 +26,6 @@ export default async function handler(req, res) {
 
   console.log('Request method:', req.method);
   console.log('API Request received to /api/bookings');
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
   
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -42,7 +48,13 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Error in bookings handler:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message, 
+      stack: error.stack,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+    });
   }
 }
 
@@ -94,7 +106,15 @@ async function getBookings(req, res) {
       throw error;
     }
 
-    console.log(`Successfully fetched ${data.length} bookings`);
+    console.log(`Successfully fetched ${data ? data.length : 0} bookings`);
+    
+    if (!data || data.length === 0) {
+      console.log('No bookings found in database');
+      return res.status(200).json({
+        success: true,
+        bookings: []
+      });
+    }
     
     // Process data if needed
     const processedData = data.map(booking => ({
@@ -116,7 +136,9 @@ async function getBookings(req, res) {
     return res.status(500).json({ 
       success: false,
       error: 'Failed to fetch bookings',
-      details: error.message
+      message: error.message,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
     });
   }
 }
@@ -124,18 +146,30 @@ async function getBookings(req, res) {
 // Create a new booking
 async function createBooking(req, res) {
   console.log('Creating new booking...');
-  console.log('Request body:', req.body);
+  console.log('Request body:', JSON.stringify(req.body));
   
   try {
     const bookingData = req.body;
     
     // Validate required fields
-    if (!bookingData || !bookingData.pickup_location || !bookingData.dropoff_location || 
-        !bookingData.pickup_date || !bookingData.car_id || !bookingData.full_name || 
-        !bookingData.email || !bookingData.phone) {
+    if (!bookingData) {
+      console.error('No booking data provided');
       return res.status(400).json({ 
         success: false,
-        error: 'Required fields are missing' 
+        error: 'No booking data provided' 
+      });
+    }
+    
+    // Check for required fields
+    const requiredFields = ['pickup_location', 'dropoff_location', 'pickup_date', 'car_id', 'full_name', 'email', 'phone'];
+    const missingFields = requiredFields.filter(field => !bookingData[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return res.status(400).json({ 
+        success: false,
+        error: 'Required fields are missing',
+        missingFields: missingFields
       });
     }
     
@@ -143,6 +177,8 @@ async function createBooking(req, res) {
     if (!bookingData.status) {
       bookingData.status = 'pending';
     }
+    
+    console.log('Prepared booking data:', JSON.stringify(bookingData));
     
     // Insert booking into database
     const { data, error } = await supabase
@@ -156,6 +192,7 @@ async function createBooking(req, res) {
     }
 
     if (!data || data.length === 0) {
+      console.error('No data returned from insert operation');
       throw new Error('No data returned from insert operation');
     }
 
@@ -170,7 +207,9 @@ async function createBooking(req, res) {
     return res.status(500).json({ 
       success: false,
       error: 'Failed to create booking',
-      details: error.message
+      message: error.message,
+      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
+      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
     });
   }
 }
