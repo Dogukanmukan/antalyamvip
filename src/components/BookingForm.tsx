@@ -18,13 +18,14 @@ const BookingForm: React.FC = () => {
     returnDropoffLocation: '',
     returnDate: '',
     returnTime: '',
-    passengers: 1,
-    contactInfo: {
-      fullName: '',
-      phone: '',
-      email: '',
-      notes: ''
-    }
+    passengers: 1
+  });
+
+  const [contactInfo, setContactInfo] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    notes: ''
   });
 
   // When trip type changes, update return fields if needed
@@ -42,8 +43,29 @@ const BookingForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Combine date and time for API format
+    const pickupDateTime = formData.pickupDate && formData.pickupTime 
+      ? `${formData.pickupDate}T${formData.pickupTime}:00` 
+      : '';
+    
+    const returnDateTime = formData.returnDate && formData.returnTime 
+      ? `${formData.returnDate}T${formData.returnTime}:00` 
+      : '';
+    
+    // Prepare data for BookingResults page
+    const bookingData = {
+      tripType: formData.tripType,
+      pickupLocation: formData.pickupLocation,
+      dropoffLocation: formData.dropoffLocation,
+      pickupDate: pickupDateTime,
+      returnPickupLocation: formData.returnPickupLocation,
+      returnDropoffLocation: formData.returnDropoffLocation,
+      returnDate: returnDateTime,
+      passengers: formData.passengers
+    };
+    
     // Navigate to booking results page with form data
-    navigate('/booking-results', { state: { bookingData: formData } });
+    navigate('/booking-results', { state: { bookingData } });
   };
   
   return (
@@ -266,74 +288,6 @@ const BookingForm: React.FC = () => {
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Contact Information */}
-        <div className="mb-6 pt-4 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
-            {t('bookingResults.contactInformation')}
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                {t('booking.fullName')}
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  value={formData.contactInfo.fullName}
-                  onChange={(e) => setFormData({ ...formData, contactInfo: { ...formData.contactInfo, fullName: e.target.value } })}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                {t('booking.phone')}
-              </label>
-              <div className="relative">
-                <input
-                  type="tel"
-                  className="w-full pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  value={formData.contactInfo.phone}
-                  onChange={(e) => setFormData({ ...formData, contactInfo: { ...formData.contactInfo, phone: e.target.value } })}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                {t('booking.email')}
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  className="w-full pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  value={formData.contactInfo.email}
-                  onChange={(e) => setFormData({ ...formData, contactInfo: { ...formData.contactInfo, email: e.target.value } })}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                {t('booking.notes')}
-              </label>
-              <div className="relative">
-                <textarea
-                  className="w-full pl-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  rows={3}
-                  value={formData.contactInfo.notes || ''}
-                  onChange={(e) => setFormData({ ...formData, contactInfo: { ...formData.contactInfo, notes: e.target.value } })}
-                ></textarea>
               </div>
             </div>
           </div>

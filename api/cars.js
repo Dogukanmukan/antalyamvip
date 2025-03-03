@@ -1,18 +1,10 @@
 // Vercel serverless function for fetching cars
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-console.log('API Request received to /api/cars');
-console.log('Request method:', req.method);
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
 
 export default async function handler(req, res) {
   // CORS headers
@@ -21,8 +13,6 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-  console.log('Request method:', req.method);
-  
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -37,19 +27,16 @@ export default async function handler(req, res) {
       case 'POST':
         return await createCar(req, res);
       default:
-        console.error('Method not allowed:', req.method);
         return res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
     console.error('Error in cars handler:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message, stack: error.stack });
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }
 
 // Get all cars
 async function getCars(req, res) {
-  console.log('Fetching all cars from Supabase...');
-  
   try {
     // Fetch cars from Supabase
     const { data, error } = await supabase
@@ -58,8 +45,6 @@ async function getCars(req, res) {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-
-    console.log(`Successfully fetched ${data.length} cars`);
     
     // Process arrays for response
     const processedData = data.map(car => ({
@@ -77,9 +62,6 @@ async function getCars(req, res) {
 
 // Create a new car
 async function createCar(req, res) {
-  console.log('Creating new car...');
-  console.log('Request body:', req.body);
-  
   try {
     const carData = req.body;
     
@@ -101,8 +83,6 @@ async function createCar(req, res) {
       .select();
 
     if (error) throw error;
-
-    console.log('Car created successfully:', data[0].id);
     
     // Process arrays for response
     const processedResponse = {

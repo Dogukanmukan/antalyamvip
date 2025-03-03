@@ -64,10 +64,16 @@ export interface BookingFormData {
   returnTime: string;
   // Diğer detaylar
   passengers: number;
-  contactInfo: {
-    fullName: string;
-    phone: string;
-    email: string;
-    notes?: string;
-  }
+}
+
+// Rezervasyon sonuçları sayfası için veri tipi
+export interface BookingResultsData {
+  tripType: 'oneWay' | 'roundTrip';
+  pickupLocation: string;
+  dropoffLocation: string;
+  pickupDate: string;
+  returnPickupLocation?: string;
+  returnDropoffLocation?: string;
+  returnDate?: string;
+  passengers: number;
 }
