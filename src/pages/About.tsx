@@ -90,13 +90,11 @@ const About = () => {
       
       // Müşteri değerlendirmesi sayacı
       const ratingTarget = 5;
-      const ratingDuration = 2000;
       const ratingInterval = 50;
-      const ratingStep = 0.1;
       
       const ratingTimer = setInterval(() => {
         setRatingCount(prev => {
-          const next = parseFloat((prev + ratingStep).toFixed(1));
+          const next = parseFloat((prev + 0.1).toFixed(1));
           if (next >= ratingTarget) {
             clearInterval(ratingTimer);
             return ratingTarget;
