@@ -87,11 +87,24 @@ const EditCar: React.FC = () => {
     
     setUploading(true);
     setError(null);
+    setUploadError(null);
     
     try {
       // Base64 formatına dönüştürme işlemi
       const uploadPromises = imageFiles.map(file => {
         return new Promise((resolve, reject) => {
+          // Dosya boyutu kontrolü (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            reject(new Error(`${file.name} dosyası çok büyük. Maksimum dosya boyutu 5MB'dır.`));
+            return;
+          }
+          
+          // Dosya türü kontrolü
+          if (!file.type.startsWith('image/')) {
+            reject(new Error(`${file.name} bir resim dosyası değil.`));
+            return;
+          }
+          
           const reader = new FileReader();
           reader.onload = (e) => {
             resolve({
@@ -100,17 +113,21 @@ const EditCar: React.FC = () => {
             });
           };
           reader.onerror = (e) => {
-            reject(e);
+            reject(new Error(`${file.name} dosyası okunamadı: ${e.target?.error?.message || 'Bilinmeyen hata'}`));
           };
           reader.readAsDataURL(file);
         });
       });
       
-      const base64Files = await Promise.all(uploadPromises);
+      // Her bir dosyayı ayrı ayrı işle
+      const results = [];
+      const errors = [];
       
-      // Her bir resmi ayrı ayrı yükle
-      const uploadResults = await Promise.all(
-        base64Files.map(async (fileData: any) => {
+      for (let i = 0; i < uploadPromises.length; i++) {
+        try {
+          const fileData = await uploadPromises[i];
+          console.log(`Processing file ${i+1}/${uploadPromises.length}`);
+          
           const response = await fetch('/api/upload', {
             method: 'POST',
             headers: {
@@ -119,29 +136,44 @@ const EditCar: React.FC = () => {
             body: JSON.stringify(fileData),
           });
           
+          const responseData = await response.json();
+          
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Resim yüklenirken bir hata oluştu');
+            throw new Error(responseData.error || responseData.message || 'Resim yüklenirken bir hata oluştu');
           }
           
-          return await response.json();
-        })
-      );
-      
-      // Yeni resimleri ekle
-      const newImageUrls = uploadResults.map((result) => result.url);
-      setImages(prev => [...prev, ...newImageUrls]);
-      
-      // Yüklenen dosyaları temizle
-      setImageFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+          results.push(responseData);
+          console.log(`File ${i+1} uploaded successfully`);
+        } catch (err) {
+          console.error(`Error uploading file ${i+1}:`, err);
+          errors.push(err instanceof Error ? err.message : 'Bilinmeyen hata');
+        }
       }
       
-      // setSuccess('Resimler başarıyla yüklendi');
+      if (errors.length > 0) {
+        if (errors.length === uploadPromises.length) {
+          // Tüm dosyalar başarısız olduysa
+          throw new Error(`Resimler yüklenemedi: ${errors.join(', ')}`);
+        } else {
+          // Bazı dosyalar başarısız olduysa uyarı göster ama devam et
+          setUploadError(`Bazı resimler yüklenemedi: ${errors.join(', ')}`);
+        }
+      }
+      
+      if (results.length > 0) {
+        // Başarılı yüklenen resimleri ekle
+        const newImageUrls = results.map((result) => result.url);
+        setImages(prev => [...prev, ...newImageUrls]);
+        
+        // Yüklenen dosyaları temizle
+        setImageFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
     } catch (err) {
-      console.error('Error uploading image:', err);
-      setError('Resim yüklenirken bir hata oluştu');
+      console.error('Error uploading images:', err);
+      setError(err instanceof Error ? err.message : 'Resim yüklenirken bir hata oluştu');
     } finally {
       setUploading(false);
     }
@@ -157,8 +189,21 @@ const EditCar: React.FC = () => {
       
       if (imageFilesOnly.length !== filesArray.length) {
         setUploadError('Sadece resim dosyaları yüklenebilir');
-      } else {
-        setImageFiles(prev => [...prev, ...imageFilesOnly]);
+      }
+      
+      // Dosya boyutu kontrolü
+      const oversizedFiles = imageFilesOnly.filter(file => file.size > 5 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        setUploadError(`Bazı dosyalar çok büyük. Maksimum dosya boyutu 5MB'dır.`);
+      }
+      
+      // Geçerli dosyaları ekle
+      const validFiles = imageFilesOnly.filter(file => file.size <= 5 * 1024 * 1024);
+      if (validFiles.length > 0) {
+        setImageFiles(prev => [...prev, ...validFiles]);
+      }
+      
+      if (validFiles.length === filesArray.length) {
         setUploadError(null);
       }
     }
@@ -189,6 +234,14 @@ const EditCar: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
+      // Yüklenmemiş resim dosyaları varsa uyarı ver
+      if (imageFiles.length > 0) {
+        if (!confirm('Yüklenmemiş resim dosyaları var. Devam etmek istiyor musunuz?')) {
+          setSubmitting(false);
+          return;
+        }
+      }
+      
       // Araç verilerini hazırla
       const carData = {
         ...car,
@@ -201,11 +254,20 @@ const EditCar: React.FC = () => {
         carData.features = carData.features.filter(feature => feature.trim() !== '');
       }
       
+      // Zorunlu alanları kontrol et
+      if (!carData.name || !carData.category) {
+        setError('Araç adı ve kategori alanları zorunludur');
+        setSubmitting(false);
+        return;
+      }
+      
       const url = id 
         ? `/api/cars/${id}` 
         : '/api/cars';
       
       const method = id ? 'PUT' : 'POST';
+      
+      console.log('Sending car data:', JSON.stringify(carData));
       
       const response = await fetch(url, {
         method,
@@ -215,12 +277,11 @@ const EditCar: React.FC = () => {
         body: JSON.stringify(carData),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Bir hata oluştu');
-      }
+      const responseData = await response.json();
       
-      // setSuccess(id ? 'Araç başarıyla güncellendi!' : 'Araç başarıyla eklendi!');
+      if (!response.ok) {
+        throw new Error(responseData.message || responseData.error || 'Bir hata oluştu');
+      }
       
       // Başarılı işlemden sonra araç listesine yönlendir
       setTimeout(() => {
