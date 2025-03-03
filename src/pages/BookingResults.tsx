@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookingFormData } from '../types';
 import { Car } from '../types';
@@ -9,7 +9,8 @@ import ImageModal from '../components/ImageModal';
 const BookingResults: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [bookingData] = useState<BookingFormData | null>(null);
+  const location = useLocation();
+  const [bookingData, setBookingData] = useState<BookingFormData | null>(null);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [cars, setCars] = useState<Car[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +22,17 @@ const BookingResults: React.FC = () => {
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Location state'inden bookingData'yı al
+  useEffect(() => {
+    if (location.state && location.state.bookingData) {
+      setBookingData(location.state.bookingData);
+      console.log('Booking data from location state:', location.state.bookingData);
+    } else {
+      // Eğer bookingData yoksa ana sayfaya yönlendir
+      navigate('/');
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
