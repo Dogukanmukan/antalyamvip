@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
-import { authAPI } from '../utils/api';
 import { isValidEmail, hasMinLength } from '../utils/validation';
+import { supabase } from '../../lib/supabaseClient';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,10 +16,14 @@ const Login: React.FC = () => {
   
   // Kullanıcı zaten giriş yapmışsa dashboard'a yönlendir
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      navigate('/admin/dashboard');
-    }
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/admin/dashboard');
+      }
+    };
+    
+    checkSession();
   }, [navigate]);
   
   // Input değişikliklerinde anlık doğrulama
@@ -86,23 +90,37 @@ const Login: React.FC = () => {
     
     try {
       console.log('Attempting login with:', { email });
-      const response = await authAPI.login(email, password);
-      console.log('Login API response:', response);
       
-      // API yanıtını kontrol et
-      if (!response) {
-        throw new Error('API response is empty');
+      // Supabase ile giriş yap
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      console.log('Supabase auth response:', data);
+      
+      if (authError) {
+        console.error('Supabase auth error:', authError);
+        throw new Error(authError.message || 'Giriş başarısız');
       }
       
-      if (!response.token || !response.user) {
-        console.error('Invalid API response format:', response);
-        throw new Error('Invalid response format from server');
+      if (!data.session || !data.user) {
+        console.error('Invalid auth response:', data);
+        throw new Error('Geçersiz kimlik doğrulama yanıtı');
       }
+      
+      // Kullanıcı rolünü kontrol et (opsiyonel)
+      const userRole = data.user.app_metadata?.role || 'user';
+      console.log('User role:', userRole);
       
       // Token ve kullanıcı bilgilerini kaydet
       console.log('Storing authentication data...');
-      localStorage.setItem('adminToken', response.token);
-      localStorage.setItem('adminUser', JSON.stringify(response.user));
+      localStorage.setItem('adminToken', data.session.access_token);
+      localStorage.setItem('adminUser', JSON.stringify({
+        id: data.user.id,
+        email: data.user.email,
+        role: userRole
+      }));
       
       console.log('Login successful, redirecting to dashboard...');
       

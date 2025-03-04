@@ -1,55 +1,76 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { authAPI } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Token kontrolü
-    const checkAuth = () => {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        console.log('Token bulunamadı, yönlendiriliyor...');
-        setIsAuthenticated(false);
-        return;
+    const checkAuth = async () => {
+      try {
+        // Supabase oturumunu kontrol et
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth session error:', error);
+          navigate('/admin/login');
+          return;
+        }
+        
+        if (!data.session) {
+          console.log('No active session found, redirecting to login');
+          navigate('/admin/login');
+          return;
+        }
+        
+        // Kullanıcı rolünü kontrol et (opsiyonel)
+        const userRole = data.session.user.app_metadata?.role || 'user';
+        console.log('User authenticated with role:', userRole);
+        
+        // Admin rolü kontrolü (opsiyonel)
+        // if (userRole !== 'admin') {
+        //   console.log('User does not have admin role, redirecting to login');
+        //   navigate('/admin/login');
+        //   return;
+        // }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        navigate('/admin/login');
       }
-      
-      // Kullanıcı bilgilerini kontrol et
-      const user = authAPI.getCurrentUser();
-      if (!user) {
-        console.log('Kullanıcı bilgisi bulunamadı, yönlendiriliyor...');
-        setIsAuthenticated(false);
-        return;
-      }
-      
-      console.log('Kullanıcı doğrulandı:', user);
-      setIsAuthenticated(true);
     };
     
     checkAuth();
-  }, []);
-
-  // Yükleniyor durumu
-  if (isAuthenticated === null) {
+    
+    // Auth durumu değişikliklerini dinle
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
+      
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate('/admin/login');
+      }
+    });
+    
+    // Cleanup
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
+  
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
       </div>
     );
   }
-
-  // Kimlik doğrulama başarısız ise login sayfasına yönlendir
-  if (isAuthenticated === false) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
-  }
-
-  // Kimlik doğrulama başarılı ise çocuk bileşenleri göster
+  
   return <>{children}</>;
 };
 
