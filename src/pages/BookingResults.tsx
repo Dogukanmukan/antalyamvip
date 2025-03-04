@@ -100,6 +100,7 @@ const BookingResults: React.FC = () => {
         email: contactInfo.email,
         phone: contactInfo.phone,
         notes: contactInfo.notes || '',
+        total_price: selectedCar.price_per_day || 0,
         status: 'pending'
       };
 

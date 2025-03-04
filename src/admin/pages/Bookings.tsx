@@ -23,6 +23,7 @@ interface Booking {
   email: string;
   phone: string;
   notes?: string;
+  total_price: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   created_at: string;
   updated_at?: string;
@@ -249,10 +250,6 @@ const Bookings: React.FC = () => {
         
         // Verileri işle ve görüntüleme için hazırla
         const processedBookings = bookingsArray.map(booking => {
-          // Tarih ve saat bilgilerini ayır
-          const pickupDate = new Date(booking.pickup_date);
-          const formattedPickupDate = pickupDate.toLocaleDateString();
-          
           // Orijinal rezervasyon nesnesini döndür, UI için ek alanları ekle
           return {
             ...booking,
