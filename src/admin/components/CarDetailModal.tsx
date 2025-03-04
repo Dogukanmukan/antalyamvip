@@ -1,180 +1,192 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Car, Users, Briefcase, Tag, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface CarDetailModalProps {
   car: any; // Daha sonra Car tipini tanımlayabiliriz
+  isOpen: boolean;
   onClose: () => void;
 }
 
-const CarDetailModal: React.FC<CarDetailModalProps> = ({ car, onClose }) => {
-  // Araç durumuna göre renk ve metin belirleme
-  const getStatusInfo = (status: string) => {
-    switch (status.toLowerCase()) {
+const CarDetailModal: React.FC<CarDetailModalProps> = ({ car, isOpen, onClose }) => {
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
+  // Araç durumuna göre renk belirle
+  const getStatusColor = (status: string) => {
+    switch (status) {
       case 'active':
-        return {
-          color: 'bg-green-100 text-green-800',
-          icon: <CheckCircle className="h-4 w-4 mr-1" />,
-          text: 'Aktif'
-        };
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'maintenance':
-        return {
-          color: 'bg-yellow-100 text-yellow-800',
-          icon: <AlertCircle className="h-4 w-4 mr-1" />,
-          text: 'Bakımda'
-        };
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'inactive':
-        return {
-          color: 'bg-red-100 text-red-800',
-          icon: <AlertCircle className="h-4 w-4 mr-1" />,
-          text: 'Pasif'
-        };
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
       default:
-        return {
-          color: 'bg-gray-100 text-gray-800',
-          icon: <AlertCircle className="h-4 w-4 mr-1" />,
-          text: status
-        };
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
-
-  const statusInfo = getStatusInfo(car.status);
-
+  
+  // Araç durumuna göre metin belirle
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Aktif';
+      case 'maintenance':
+        return 'Bakımda';
+      case 'inactive':
+        return 'Pasif';
+      default:
+        return 'Bilinmiyor';
+    }
+  };
+  
+  // Görselleri hazırla
+  const getImages = () => {
+    if (Array.isArray(car.images) && car.images.length > 0) {
+      return car.images;
+    }
+    return ['/images/car-placeholder.jpg'];
+  };
+  
+  const images = getImages();
+  
+  if (!isOpen || !car) return null;
+  
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto dark:bg-gray-800">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b dark:border-gray-700">
-          <h2 className="text-xl font-semibold dark:text-white">{car.name}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden dark:bg-gray-800">
+        {/* Modal Başlık */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{car.name}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Araç Görseli */}
-            <div className="flex flex-col">
-              <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center dark:bg-gray-700">
-                {car.images && Array.isArray(car.images) && car.images.length > 0 ? (
-                  <img
-                    src={car.images[0]}
-                    alt={car.name}
-                    className="h-full w-full object-cover rounded-lg"
-                  />
-                ) : (
-                  <Car className="h-24 w-24 text-gray-400" />
-                )}
+        
+        {/* Modal İçerik */}
+        <div className="overflow-y-auto p-4 max-h-[calc(90vh-8rem)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Görsel Galerisi */}
+            <div className="space-y-4">
+              {/* Ana Görsel */}
+              <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg overflow-hidden dark:bg-gray-700">
+                <img
+                  src={images[activeImageIndex]}
+                  alt={`${car.name} - ${activeImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/car-placeholder.jpg';
+                  }}
+                />
               </div>
               
-              {/* Galeri Resimleri */}
-              {car.images && Array.isArray(car.images) && car.images.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-lg font-medium mb-2 dark:text-white">Galeri</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {car.images.map((image: string, index: number) => (
+              {/* Küçük Görseller */}
+              {images.length > 1 && (
+                <div className="flex space-x-2 overflow-x-auto pb-2">
+                  {images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveImageIndex(index)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 ${
+                        index === activeImageIndex
+                          ? 'border-amber-500 dark:border-amber-400'
+                          : 'border-transparent'
+                      }`}
+                    >
                       <img
-                        key={index}
                         src={image}
                         alt={`${car.name} - ${index + 1}`}
-                        className="h-16 w-16 object-cover rounded-md"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/images/car-placeholder.jpg';
+                        }}
                       />
-                    ))}
-                  </div>
+                    </button>
+                  ))}
                 </div>
               )}
-              
-              {/* Durum */}
-              <div className="mt-4">
-                <h3 className="text-lg font-medium mb-2 dark:text-white">Durum</h3>
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm ${statusInfo.color}`}>
-                  {statusInfo.icon}
-                  {statusInfo.text}
-                </div>
-              </div>
             </div>
-
-            {/* Araç Bilgileri */}
-            <div>
-              <h3 className="text-lg font-medium mb-4 dark:text-white">Araç Bilgileri</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center text-gray-500 dark:text-gray-400">
-                    <Tag className="h-5 w-5 mr-2" />
-                    <span>Kategori</span>
-                  </div>
-                  <div className="mt-1 text-gray-900 font-medium dark:text-white">{car.category}</div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center text-gray-500 dark:text-gray-400">
-                    <Users className="h-5 w-5 mr-2" />
-                    <span>Yolcu Kapasitesi</span>
-                  </div>
-                  <div className="mt-1 text-gray-900 font-medium dark:text-white">{car.passengerCapacity} Kişi</div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center text-gray-500 dark:text-gray-400">
-                    <Briefcase className="h-5 w-5 mr-2" />
-                    <span>Bagaj Kapasitesi</span>
-                  </div>
-                  <div className="mt-1 text-gray-900 font-medium dark:text-white">{car.luggageCapacity} Parça</div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center text-gray-500 dark:text-gray-400">
-                    <Calendar className="h-5 w-5 mr-2" />
-                    <span>Eklenme Tarihi</span>
-                  </div>
-                  <div className="mt-1 text-gray-900 font-medium dark:text-white">
-                    {new Date(car.createdAt).toLocaleDateString('tr-TR')}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Özellikler */}
-          <div className="mt-8">
-            <h3 className="text-lg font-medium mb-4 dark:text-white">Özellikler</h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {car.features && car.features.map((feature: string, index: number) => (
-                <div key={index} className="bg-gray-100 px-3 py-2 rounded-md text-sm dark:bg-gray-700 dark:text-gray-300">
-                  {feature}
+            {/* Araç Bilgileri */}
+            <div className="space-y-4">
+              {/* Temel Bilgiler */}
+              <div className="bg-gray-50 p-4 rounded-lg dark:bg-gray-700">
+                <h3 className="text-lg font-medium mb-3 dark:text-white">Araç Bilgileri</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Marka</p>
+                    <p className="font-medium dark:text-white">{car.make}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Model</p>
+                    <p className="font-medium dark:text-white">{car.model}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Kategori</p>
+                    <p className="font-medium dark:text-white">{car.category}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Durum</p>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(car.status)}`}>
+                      {getStatusText(car.status)}
+                    </span>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Yolcu Kapasitesi</p>
+                    <p className="font-medium dark:text-white">{car.seats || car.passengers}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Bagaj Kapasitesi</p>
+                    <p className="font-medium dark:text-white">{car.luggage}</p>
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Günlük Fiyat</p>
+                    <p className="text-xl font-semibold text-amber-600 dark:text-amber-400">
+                      {car.price_per_day || car.price}₺ <span className="text-sm text-gray-500 dark:text-gray-400">/gün</span>
+                    </p>
+                  </div>
                 </div>
-              ))}
+              </div>
               
-              {(!car.features || car.features.length === 0) && (
-                <div className="col-span-full text-gray-500 dark:text-gray-400">
-                  Bu araç için belirtilmiş özellik bulunmamaktadır.
+              {/* Açıklama */}
+              {car.description && (
+                <div className="bg-gray-50 p-4 rounded-lg dark:bg-gray-700">
+                  <h3 className="text-lg font-medium mb-2 dark:text-white">Açıklama</h3>
+                  <p className="text-gray-700 dark:text-gray-300">{car.description}</p>
+                </div>
+              )}
+              
+              {/* Özellikler */}
+              {Array.isArray(car.features) && car.features.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg dark:bg-gray-700">
+                  <h3 className="text-lg font-medium mb-3 dark:text-white">Özellikler</h3>
+                  <ul className="grid grid-cols-2 gap-2">
+                    {car.features.map((feature, index) => (
+                      <li key={index} className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Fiyat Bilgisi */}
-          <div className="mt-8 bg-amber-50 p-4 rounded-lg dark:bg-amber-900/20">
-            <h3 className="text-lg font-medium mb-2 text-amber-800 dark:text-amber-400">Fiyat Bilgisi</h3>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-500">
-              {typeof car.price === 'number' 
-                ? `${car.price.toLocaleString('tr-TR')} ₺` 
-                : car.price}
-            </div>
-            <div className="text-sm text-amber-700 dark:text-amber-400">Günlük fiyat</div>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex justify-end p-6 border-t dark:border-gray-700">
+        
+        {/* Modal Alt Kısmı */}
+        <div className="p-4 border-t border-gray-200 flex justify-end dark:border-gray-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
           >
             Kapat
           </button>

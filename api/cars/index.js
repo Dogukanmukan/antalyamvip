@@ -95,12 +95,6 @@ export default async function handler(req, res) {
         carData.images = [];
       }
       
-      // image alanı varsa ve images alanı boşsa, image'ı images'e ekle
-      if (carData.image && (!carData.images || carData.images.length === 0)) {
-        carData.images = [carData.image];
-        delete carData.image; // image alanını kaldır
-      }
-      
       // Varsayılan durum ekle
       if (!carData.status) {
         carData.status = 'active';
@@ -146,12 +140,6 @@ export default async function handler(req, res) {
         carData.images = carData.images.filter(img => img !== null && img !== 'null' && img !== '');
       } else {
         carData.images = [];
-      }
-      
-      // image alanı varsa ve images alanı boşsa, image'ı images'e ekle
-      if (carData.image && (!carData.images || carData.images.length === 0)) {
-        carData.images = [carData.image];
-        delete carData.image; // image alanını kaldır
       }
       
       // Aracı güncelle

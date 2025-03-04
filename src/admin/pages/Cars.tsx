@@ -13,14 +13,16 @@ import CarForm from '../components/CarForm';
 interface Car {
   id: number;
   name: string;
+  make: string;
+  model: string;
   category: string;
-  passengers: number;
+  seats: number;
   luggage: number;
-  price: number;
-  image: string;
+  price_per_day: number;
   status: 'active' | 'maintenance' | 'inactive';
   description?: string;
   features?: string[];
+  images?: string[];
 }
 
 // Cars bileşeni
@@ -335,7 +337,7 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
     <AdminLayout>
       {/* Araç detay modalı */}
       {selectedCar && (
-        <CarDetailModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+        <CarDetailModal car={selectedCar} isOpen={!!selectedCar} onClose={() => setSelectedCar(null)} />
       )}
       
       {/* Silme onay modalı */}

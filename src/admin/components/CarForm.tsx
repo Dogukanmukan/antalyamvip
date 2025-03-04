@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Upload } from 'lucide-react';
+import { X, Plus, Save, Upload, Trash2 } from 'lucide-react';
 import api from '../utils/api-compat';
 import { supabase } from '../utils/supabase';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 interface CarFormProps {
   initialData?: any;
@@ -16,64 +17,41 @@ const CarForm: React.FC<CarFormProps> = ({
   onCancel,
   isSubmitting
 }) => {
+  // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    make: '',
-    model: '',
-    category: 'Sedan',
-    passengers: 4,
-    luggage: 3,
-    price: 0,
-    status: 'active',
-    description: '',
-    features: [''],
-    image: '',
-    images: [] as string[]
+    name: initialData?.name || '',
+    make: initialData?.make || '',
+    model: initialData?.model || '',
+    category: initialData?.category || 'Sedan',
+    passengers: initialData?.seats || 4,
+    luggage: initialData?.luggage || 3,
+    price: initialData?.price_per_day || '',
+    status: initialData?.status || 'active',
+    description: initialData?.description || '',
+    features: initialData?.features || [''],
+    images: initialData?.images || []
   });
   
+  // Hata state'i
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewImage, setPreviewImage] = useState<string>('');
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  
+  // Yükleme durumu
   const [isUploading, setIsUploading] = useState(false);
   
-  // Form ilk yüklendiğinde veya initialData değiştiğinde formu doldur
+  // Görsel önizleme
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  
+  // Supabase client
+  const supabase = useSupabaseClient();
+  
+  // Component mount olduğunda önizleme görsellerini ayarla
   useEffect(() => {
-    if (initialData) {
-      console.log('CarForm - initialData:', {
-        id: initialData.id,
-        name: initialData.name,
-        image: initialData.image,
-        images: initialData.images,
-        imagesType: initialData.images ? typeof initialData.images : 'undefined',
-        imagesIsArray: initialData.images ? Array.isArray(initialData.images) : false
-      });
-      
-      setFormData({
-        name: initialData.name || '',
-        make: initialData.make || '',
-        model: initialData.model || '',
-        category: initialData.category || 'Sedan',
-        passengers: initialData.passengers || 4,
-        luggage: initialData.luggage || 3,
-        price: initialData.price || 0,
-        status: initialData.status || 'active',
-        description: initialData.description || '',
-        features: initialData.features?.length ? initialData.features : [''],
-        image: initialData.image || '',
-        images: initialData.images || []
-      });
-      
-      if (initialData.image) {
-        setPreviewImage(initialData.image);
-      }
-      
-      if (initialData.images) {
-        setPreviewImages(initialData.images);
-      }
+    if (initialData?.images && Array.isArray(initialData.images) && initialData.images.length > 0) {
+      setPreviewImages(initialData.images);
     }
   }, [initialData]);
   
-  // Form alanlarını güncelle
+  // Input değişikliklerini işle
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
@@ -91,15 +69,15 @@ const CarForm: React.FC<CarFormProps> = ({
     }
   };
   
-  // Sayısal alanları güncelle
+  // Sayısal input değişikliklerini işle
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numValue = parseInt(value, 10);
     
-    if (!isNaN(numValue)) {
+    // Sadece sayısal değerlere izin ver
+    if (value === '' || /^\d+$/.test(value)) {
       setFormData(prev => ({
         ...prev,
-        [name]: numValue
+        [name]: value
       }));
       
       // Hata varsa temizle
@@ -122,136 +100,30 @@ const CarForm: React.FC<CarFormProps> = ({
   
   // Özellik güncelle
   const updateFeature = (index: number, value: string) => {
-    const updatedFeatures = [...formData.features];
-    updatedFeatures[index] = value;
-    
-    setFormData(prev => ({
-      ...prev,
-      features: updatedFeatures
-    }));
+    setFormData(prev => {
+      const updatedFeatures = [...prev.features];
+      updatedFeatures[index] = value;
+      return {
+        ...prev,
+        features: updatedFeatures
+      };
+    });
   };
   
-  // Özellik sil
+  // Özellik kaldır
   const removeFeature = (index: number) => {
-    const updatedFeatures = formData.features.filter((_, i) => i !== index);
-    
-    setFormData(prev => ({
-      ...prev,
-      features: updatedFeatures.length ? updatedFeatures : ['']
-    }));
+    setFormData(prev => {
+      const updatedFeatures = [...prev.features];
+      updatedFeatures.splice(index, 1);
+      return {
+        ...prev,
+        features: updatedFeatures
+      };
+    });
   };
   
-  // Resim yükleme
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    
-    if (!file) return;
-    
-    // Dosya boyutu kontrolü (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({
-        ...prev,
-        image: 'Dosya boyutu 5MB\'dan küçük olmalıdır.'
-      }));
-      return;
-    }
-    
-    // Dosya tipi kontrolü
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setErrors(prev => ({
-        ...prev,
-        image: 'Sadece JPEG, PNG ve WEBP formatları desteklenmektedir.'
-      }));
-      return;
-    }
-    
-    // Önizleme için URL oluştur
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    
-    try {
-      console.log('Resim yükleme başlatılıyor:', file.name);
-      setIsUploading(true);
-      
-      // Kullanıcının oturum açtığını kontrol et
-      const token = localStorage.getItem('adminToken');
-      
-      if (!token) {
-        console.error('Oturum açılmamış, resim yüklenemez');
-        
-        // Supabase oturumunu kontrol et
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData && sessionData.session) {
-            console.log('Supabase oturumu bulundu, token yenileniyor');
-            localStorage.setItem('adminToken', sessionData.session.access_token);
-            
-            // Yeni token ile devam et
-            const result = await api.files.uploadFile(file, 'car-images');
-            console.log('Dosya başarıyla yüklendi:', result);
-            
-            // Ana görsel olarak ayarla ve images dizisine de ekle
-            setFormData(prev => ({
-              ...prev,
-              images: [result.url]
-            }));
-            
-            if (errors.image) {
-              setErrors(prev => ({ ...prev, image: '' }));
-            }
-            
-            setIsUploading(false);
-            return;
-          }
-        } catch (sessionError) {
-          console.error('Supabase oturum kontrolü hatası:', sessionError);
-        }
-        
-        setErrors(prev => ({
-          ...prev,
-          image: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
-        }));
-        
-        // Kullanıcıyı login sayfasına yönlendir
-        setTimeout(() => {
-          window.location.href = '/admin/login';
-        }, 2000);
-        
-        setIsUploading(false);
-        return;
-      }
-      
-      // Dosyayı yükle
-      const result = await api.files.uploadFile(file, 'car-images');
-      
-      console.log('Dosya başarıyla yüklendi:', result);
-      
-      // Ana görsel olarak ayarla ve images dizisine de ekle
-      setFormData(prev => ({
-        ...prev,
-        images: [result.url]
-      }));
-      
-      // Hata varsa temizle
-      if (errors.image) {
-        setErrors(prev => ({ ...prev, image: '' }));
-      }
-    } catch (error: any) {
-      console.error('Resim yükleme hatası:', error);
-      setErrors(prev => ({
-        ...prev,
-        image: error.message || 'Resim yüklenirken bir hata oluştu.'
-      }));
-    } finally {
-      setIsUploading(false);
-    }
-  };
-  
-  // Çoklu resim yükleme
-  const handleMultipleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Çoklu görsel yükleme
+  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     
     if (!files || files.length === 0) return;
@@ -291,21 +163,21 @@ const CarForm: React.FC<CarFormProps> = ({
       reader.onload = () => {
         previews.push(reader.result as string);
         if (previews.length === files.length) {
-          setPreviewImages(prev => [...prev, ...previews]);
+          setPreviewImages(previews); // Önceki önizlemeleri temizle, sadece yeni yüklenen görselleri göster
         }
       };
       reader.readAsDataURL(file);
     });
     
     try {
-      console.log('Çoklu resim yükleme başlatılıyor:', Array.from(files).map(f => f.name).join(', '));
+      console.log('Görsel yükleme başlatılıyor:', Array.from(files).map(f => f.name).join(', '));
       setIsUploading(true);
       
       // Kullanıcının oturum açtığını kontrol et
       const token = localStorage.getItem('adminToken');
       
       if (!token) {
-        console.error('Oturum açılmamış, resimler yüklenemez');
+        console.error('Oturum açılmamış, görseller yüklenemez');
         
         // Supabase oturumunu kontrol et
         try {
@@ -318,7 +190,7 @@ const CarForm: React.FC<CarFormProps> = ({
             const results = await api.files.uploadMultipleFiles(Array.from(files), 'car-images');
             console.log('Dosyalar başarıyla yüklendi:', results);
             
-            // Çoklu görsel yükleme durumunda, tüm görselleri images dizisine ekle
+            // Görselleri form verisine ekle
             if (results.length > 0) {
               setFormData(prev => ({
                 ...prev,
@@ -356,7 +228,7 @@ const CarForm: React.FC<CarFormProps> = ({
       
       console.log('Dosyalar başarıyla yüklendi:', results);
       
-      // Çoklu görsel yükleme durumunda, tüm görselleri images dizisine ekle
+      // Görselleri form verisine ekle
       if (results.length > 0) {
         setFormData(prev => ({
           ...prev,
@@ -369,17 +241,35 @@ const CarForm: React.FC<CarFormProps> = ({
         setErrors(prev => ({ ...prev, images: '' }));
       }
     } catch (error: any) {
-      console.error('Resim yükleme hatası:', error);
+      console.error('Görsel yükleme hatası:', error);
       setErrors(prev => ({
         ...prev,
-        images: error.message || 'Resimler yüklenirken bir hata oluştu.'
+        images: error.message || 'Görseller yüklenirken bir hata oluştu.'
       }));
     } finally {
       setIsUploading(false);
     }
   };
   
-  // Formu doğrula
+  // Görsel kaldır
+  const removeImage = (index: number) => {
+    setFormData(prev => {
+      const updatedImages = [...prev.images];
+      updatedImages.splice(index, 1);
+      return {
+        ...prev,
+        images: updatedImages
+      };
+    });
+    
+    setPreviewImages(prev => {
+      const updatedPreviews = [...prev];
+      updatedPreviews.splice(index, 1);
+      return updatedPreviews;
+    });
+  };
+  
+  // Form doğrulama
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -460,12 +350,31 @@ const CarForm: React.FC<CarFormProps> = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Mercedes Vito VIP"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Araç adını girin"
             />
             {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+          </div>
+          
+          {/* Kategori */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Kategori <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Minivan">Minivan</option>
+              <option value="Luxury">Lüks</option>
+              <option value="Sports">Spor</option>
+            </select>
           </div>
           
           {/* Marka */}
@@ -479,10 +388,8 @@ const CarForm: React.FC<CarFormProps> = ({
               name="make"
               value={formData.make}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.make ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Mercedes"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Markayı girin"
             />
             {errors.make && <p className="mt-1 text-sm text-red-500">{errors.make}</p>}
           </div>
@@ -498,36 +405,16 @@ const CarForm: React.FC<CarFormProps> = ({
               name="model"
               value={formData.model}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.model ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Vito"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Modeli girin"
             />
             {errors.model && <p className="mt-1 text-sm text-red-500">{errors.model}</p>}
-          </div>
-          
-          {/* Kategori */}
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Kategori <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="VIP">VIP</option>
-              <option value="Sedan">Sedan</option>
-              <option value="Minibüs">Minibüs</option>
-            </select>
           </div>
           
           {/* Yolcu Kapasitesi */}
           <div>
             <label htmlFor="passengers" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Yolcu Kapasitesi <span className="text-red-500">*</span>
+              Yolcu Kapasitesi
             </label>
             <input
               type="number"
@@ -536,17 +423,16 @@ const CarForm: React.FC<CarFormProps> = ({
               value={formData.passengers}
               onChange={handleNumberChange}
               min="1"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.passengers ? 'border-red-500' : 'border-gray-300'
-              }`}
+              max="20"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Yolcu kapasitesini girin"
             />
-            {errors.passengers && <p className="mt-1 text-sm text-red-500">{errors.passengers}</p>}
           </div>
           
           {/* Bagaj Kapasitesi */}
           <div>
             <label htmlFor="luggage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Bagaj Kapasitesi <span className="text-red-500">*</span>
+              Bagaj Kapasitesi
             </label>
             <input
               type="number"
@@ -554,18 +440,17 @@ const CarForm: React.FC<CarFormProps> = ({
               name="luggage"
               value={formData.luggage}
               onChange={handleNumberChange}
-              min="1"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.luggage ? 'border-red-500' : 'border-gray-300'
-              }`}
+              min="0"
+              max="10"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Bagaj kapasitesini girin"
             />
-            {errors.luggage && <p className="mt-1 text-sm text-red-500">{errors.luggage}</p>}
           </div>
           
           {/* Fiyat */}
           <div>
             <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Günlük Fiyat (₺) <span className="text-red-500">*</span>
+              Günlük Fiyat (₺)
             </label>
             <input
               type="number"
@@ -573,25 +458,24 @@ const CarForm: React.FC<CarFormProps> = ({
               name="price"
               value={formData.price}
               onChange={handleNumberChange}
-              min="1"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.price ? 'border-red-500' : 'border-gray-300'
-              }`}
+              min="0"
+              step="1"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Günlük fiyatı girin"
             />
-            {errors.price && <p className="mt-1 text-sm text-red-500">{errors.price}</p>}
           </div>
           
           {/* Durum */}
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Durum <span className="text-red-500">*</span>
+              Durum
             </label>
             <select
               id="status"
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
               <option value="active">Aktif</option>
               <option value="maintenance">Bakımda</option>
@@ -615,9 +499,9 @@ const CarForm: React.FC<CarFormProps> = ({
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Araç hakkında detaylı bilgi..."
-          />
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="Araç hakkında detaylı bilgi girin"
+          ></textarea>
         </div>
       </div>
       
@@ -628,139 +512,121 @@ const CarForm: React.FC<CarFormProps> = ({
           <button
             type="button"
             onClick={addFeature}
-            className="flex items-center text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400"
+            className="px-3 py-1 bg-amber-500 text-white rounded-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
-            <Plus className="h-4 w-4 mr-1" />
             Özellik Ekle
           </button>
         </div>
         
         <div className="space-y-3">
           {formData.features.map((feature, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-center gap-2">
               <input
                 type="text"
                 value={feature}
                 onChange={(e) => updateFeature(index, e.target.value)}
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Klima, Wifi, Deri Koltuk vb."
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Özellik girin (örn. Bluetooth, Klima)"
               />
               <button
                 type="button"
                 onClick={() => removeFeature(index)}
-                className="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                disabled={formData.features.length === 1 && !feature}
+                className="p-2 text-red-500 hover:text-red-700 focus:outline-none"
+                disabled={formData.features.length === 1}
               >
-                <X className="h-5 w-5" />
+                <Trash2 className="h-5 w-5" />
               </button>
             </div>
           ))}
         </div>
       </div>
       
-      {/* Tek Resim Yükleme */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Ana Resim
-        </label>
-        <div className="mt-1 flex items-center">
-          {previewImage ? (
-            <div className="relative">
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="h-32 w-32 object-cover rounded-md"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setPreviewImage('');
-                  setFormData(prev => ({ ...prev, image: '' }));
-                }}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
-              <label className="cursor-pointer text-center p-2">
-                <Upload className="h-6 w-6 text-gray-400 mx-auto" />
-                <span className="mt-2 block text-sm text-gray-400">Resim Yükle</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleImageChange}
-                />
-              </label>
-            </div>
-          )}
-          {errors.image && (
-            <p className="mt-1 text-sm text-red-600">{errors.image}</p>
-          )}
-        </div>
-      </div>
-      
-      {/* Çoklu Resim Yükleme */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Galeri Resimleri (Maksimum 10)
-        </label>
-        <div className="mt-1">
-          <div className="flex flex-wrap gap-2">
-            {/* Önizleme resimleri */}
-            {previewImages.map((preview, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={preview}
-                  alt={`Preview ${index + 1}`}
-                  className="h-24 w-24 object-cover rounded-md"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newPreviews = [...previewImages];
-                    newPreviews.splice(index, 1);
-                    setPreviewImages(newPreviews);
-                    
-                    const newImages = [...formData.images];
-                    newImages.splice(index, 1);
-                    setFormData(prev => ({ ...prev, images: newImages }));
-                  }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+      {/* Görseller */}
+      <div className="bg-white rounded-lg shadow-md p-6 dark:bg-gray-800">
+        <h3 className="text-lg font-medium mb-4 dark:text-white">Araç Görselleri</h3>
+        
+        <div className="space-y-4">
+          {/* Görsel Yükleme */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Görseller (Maksimum 10 adet)
+            </label>
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600">
+              <div className="space-y-1 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
                 >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            
-            {/* Yükleme butonu */}
-            {previewImages.length < 10 && (
-              <div className="h-24 w-24 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
-                <label className="cursor-pointer text-center p-2">
-                  <Upload className="h-5 w-5 text-gray-400 mx-auto" />
-                  <span className="mt-1 block text-xs text-gray-400">Resimler Ekle</span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    onChange={handleMultipleImageChange}
-                    disabled={isUploading}
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
-                </label>
+                </svg>
+                <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                  <label
+                    htmlFor="images"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-amber-600 hover:text-amber-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-amber-500 dark:bg-gray-700 dark:text-amber-400 dark:hover:text-amber-300"
+                  >
+                    <span>Görsel Yükle</span>
+                    <input
+                      id="images"
+                      name="images"
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={handleImagesChange}
+                      disabled={isUploading}
+                    />
+                  </label>
+                  <p className="pl-1">veya sürükle bırak</p>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  PNG, JPG, WEBP (Maks. 5MB)
+                </p>
               </div>
-            )}
+            </div>
+            {errors.images && <p className="mt-1 text-sm text-red-500">{errors.images}</p>}
+            {isUploading && <p className="mt-2 text-sm text-amber-500">Görseller yükleniyor...</p>}
           </div>
           
-          {errors.images && (
-            <p className="mt-1 text-sm text-red-600">{errors.images}</p>
-          )}
-          
-          {isUploading && (
-            <div className="mt-2 text-sm text-amber-600">
-              Resimler yükleniyor... Lütfen bekleyin.
+          {/* Görsel Önizleme */}
+          {previewImages.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Yüklenen Görseller</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {previewImages.map((preview, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md bg-gray-200 dark:bg-gray-700">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="h-full w-full object-cover object-center"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-1 left-1 px-2 py-1 bg-amber-500 text-white text-xs rounded-md">
+                        Ana Görsel
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                İlk görsel ana görsel olarak kullanılacaktır.
+              </p>
             </div>
           )}
         </div>
@@ -771,26 +637,17 @@ const CarForm: React.FC<CarFormProps> = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          disabled={isSubmitting}
         >
           İptal
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-amber-600 border border-transparent rounded-md text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting || isUploading}
         >
-          {isSubmitting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-              Kaydediliyor...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-5 w-5" />
-              Kaydet
-            </>
-          )}
+          {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
         </button>
       </div>
     </form>
