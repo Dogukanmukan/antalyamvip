@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import AdminHeader from '../../components/admin/AdminHeader';
-import { Upload, X, Plus, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Upload, X, Plus, Image as ImageIcon, Loader } from 'lucide-react';
 
+// Araç tipi tanımı
 interface Car {
   id?: number;
   name: string;
@@ -20,12 +21,15 @@ const EditCar: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = id !== undefined;
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // State tanımlamaları
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
+  // Araç verileri
   const [car, setCar] = useState<Car>({
     name: '',
     category: '',
@@ -37,126 +41,213 @@ const EditCar: React.FC = () => {
     price_per_day: null
   });
   
-  const [images, setImages] = useState<string[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Kimlik doğrulama kontrolü
+  // Resim yükleme state'leri
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Kimlik doğrulama ve veri yükleme
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
-    } else {
-      setIsAuthenticated(true);
-      if (isEditMode) {
-        fetchCar();
-      } else {
-        setLoading(false);
-      }
+      return;
     }
-  }, [navigate, id]);
-
+    
+    if (isEditMode && id) {
+      fetchCar(id);
+    } else {
+      setIsLoading(false);
+    }
+  }, [id, navigate, isEditMode]);
+  
   // Araç verilerini getir
-  const fetchCar = async () => {
+  const fetchCar = async (carId: string) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
+      setError(null);
       
-      const response = await fetch(`/api/cars/${id}`);
+      const response = await fetch(`/api/cars/${carId}`);
       
       if (!response.ok) {
         throw new Error('Araç bilgileri alınamadı');
       }
       
       const data = await response.json();
-      setCar(data);
-      // Mevcut resimleri images state'ine ekle
-      setImages(data.images || []);
-    } catch (error) {
-      console.error('Error fetching car:', error);
-      setError('Araç bilgileri alınamadı');
+      setCar({
+        ...data,
+        images: Array.isArray(data.images) ? data.images : [],
+        features: Array.isArray(data.features) && data.features.length > 0 
+          ? data.features 
+          : ['']
+      });
+    } catch (err) {
+      console.error('Araç getirme hatası:', err);
+      setError('Araç bilgileri alınamadı. Lütfen tekrar deneyin.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  // Resim yükleme işlemi
-  const handleImageUpload = async () => {
-    if (imageFiles.length === 0) return;
+  
+  // Form alanı değişikliklerini işle
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
     
-    setUploading(true);
+    if (name === 'year' || name === 'seats' || name === 'price_per_day') {
+      setCar({
+        ...car,
+        [name]: value === '' ? null : Number(value)
+      });
+    } else {
+      setCar({
+        ...car,
+        [name]: value
+      });
+    }
+  };
+  
+  // Özellik alanı değişikliklerini işle
+  const handleFeatureChange = (index: number, value: string) => {
+    const newFeatures = [...car.features];
+    newFeatures[index] = value;
+    setCar({
+      ...car,
+      features: newFeatures
+    });
+  };
+  
+  // Yeni özellik alanı ekle
+  const addFeatureField = () => {
+    setCar({
+      ...car,
+      features: [...car.features, '']
+    });
+  };
+  
+  // Özellik alanını kaldır
+  const removeFeatureField = (index: number) => {
+    if (car.features.length <= 1) return;
+    
+    const newFeatures = [...car.features];
+    newFeatures.splice(index, 1);
+    setCar({
+      ...car,
+      features: newFeatures
+    });
+  };
+  
+  // Dosya seçme işlemi
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const files = Array.from(e.target.files);
+    
+    // Sadece resim dosyalarını kabul et
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length !== files.length) {
+      setError('Sadece resim dosyaları yüklenebilir');
+      return;
+    }
+    
+    // Dosya boyutu kontrolü (5MB)
+    const validFiles = imageFiles.filter(file => file.size <= 5 * 1024 * 1024);
+    
+    if (validFiles.length !== imageFiles.length) {
+      setError('Bazı dosyalar çok büyük. Maksimum dosya boyutu 5MB');
+    }
+    
+    setSelectedFiles(prev => [...prev, ...validFiles]);
     setError(null);
-    setUploadError(null);
+    
+    // Input değerini sıfırla (aynı dosyayı tekrar seçebilmek için)
+    if (e.target.value) {
+      e.target.value = '';
+    }
+  };
+  
+  // Seçilen dosyayı kaldır
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  // Mevcut resmi kaldır
+  const removeExistingImage = (index: number) => {
+    setCar({
+      ...car,
+      images: car.images.filter((_, i) => i !== index)
+    });
+  };
+  
+  // Dosya seçme dialogunu aç
+  const openFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Resimleri yükle
+  const uploadImages = async () => {
+    if (selectedFiles.length === 0) return;
+    
+    setIsUploading(true);
+    setError(null);
+    setUploadProgress(0);
+    
+    const uploadedImageUrls: string[] = [];
     
     try {
-      // Her bir dosyayı ayrı ayrı işle
-      const results = [];
-      
-      for (let i = 0; i < imageFiles.length; i++) {
-        const file = imageFiles[i];
-        console.log(`İşleniyor: ${file.name}`);
-        
-        // Dosya boyutu kontrolü (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          setUploadError(`${file.name} dosyası çok büyük. Maksimum dosya boyutu 5MB'dır.`);
-          continue;
-        }
-        
-        // Dosya türü kontrolü
-        if (!file.type.startsWith('image/')) {
-          setUploadError(`${file.name} bir resim dosyası değil.`);
-          continue;
-        }
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
         
         // Base64'e dönüştür
         const base64 = await convertToBase64(file);
         
         // Sunucuya yükle
-        try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image: base64,
-              filename: file.name
-            }),
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error(`Dosya yükleme hatası: ${errorData.error || errorData.message || 'Bilinmeyen hata'}`);
-            continue;
-          }
-          
-          const data = await response.json();
-          results.push(data);
-          console.log(`${file.name} başarıyla yüklendi`);
-        } catch (err) {
-          console.error(`Dosya yükleme hatası:`, err);
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: base64,
+            filename: file.name
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Resim yükleme hatası:', errorData);
+          throw new Error(errorData.error || 'Resim yüklenirken bir hata oluştu');
         }
+        
+        const data = await response.json();
+        uploadedImageUrls.push(data.url);
+        
+        // İlerleme durumunu güncelle
+        setUploadProgress(Math.round(((i + 1) / selectedFiles.length) * 100));
       }
       
-      if (results.length > 0) {
-        // Başarılı yüklenen resimleri ekle
-        const newImageUrls = results.map((result) => result.url);
-        setImages(prev => [...prev, ...newImageUrls]);
-        
-        // Yüklenen dosyaları temizle
-        setImageFiles([]);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        setError('Hiçbir resim yüklenemedi. Lütfen tekrar deneyin.');
-      }
+      // Yüklenen resimleri araç verilerine ekle
+      setCar({
+        ...car,
+        images: [...car.images, ...uploadedImageUrls]
+      });
+      
+      // Seçilen dosyaları temizle
+      setSelectedFiles([]);
+      setSuccess('Resimler başarıyla yüklendi');
+      
+      // 3 saniye sonra başarı mesajını temizle
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
     } catch (err) {
       console.error('Resim yükleme hatası:', err);
-      setError('Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+      setError(err instanceof Error ? err.message : 'Resim yüklenirken bir hata oluştu');
     } finally {
-      setUploading(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
   
@@ -173,71 +264,47 @@ const EditCar: React.FC = () => {
       reader.readAsDataURL(file);
     });
   };
-
-  // Resim dosyalarını seç
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const filesArray = Array.from(e.target.files);
-      setImageFiles(prev => [...prev, ...filesArray]);
-      setUploadError(null);
-    }
-  };
-
-  // Seçilen resim dosyasını kaldır
-  const removeSelectedFile = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Yüklenen resmi kaldır
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Dosya seçme dialogunu aç
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
+  
   // Form gönderimi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      setSubmitting(true);
-      setError(null);
-      
-      // Yüklenmemiş resim dosyaları varsa uyarı ver
-      if (imageFiles.length > 0) {
-        if (!confirm('Yüklenmemiş resim dosyaları var. Devam etmek istiyor musunuz?')) {
-          setSubmitting(false);
-          return;
-        }
-      }
-      
-      // Zorunlu alanları kontrol et
-      if (!car.name || !car.category) {
-        setError('Araç adı ve kategori alanları zorunludur');
-        setSubmitting(false);
+    // Yüklenmemiş resimler varsa uyarı ver
+    if (selectedFiles.length > 0) {
+      if (!window.confirm('Yüklenmemiş resim dosyaları var. Devam etmek istiyor musunuz?')) {
         return;
       }
+    }
+    
+    // Zorunlu alanları kontrol et
+    if (!car.name.trim()) {
+      setError('Araç adı zorunludur');
+      return;
+    }
+    
+    if (!car.category.trim()) {
+      setError('Kategori zorunludur');
+      return;
+    }
+    
+    try {
+      setIsSaving(true);
+      setError(null);
       
-      // Araç verilerini hazırla
+      // Boş özellikleri temizle
+      const cleanedFeatures = car.features.filter(feature => feature.trim() !== '');
+      
+      // Gönderilecek veriyi hazırla
       const carData = {
         ...car,
-        images: images,
-        features: car.features.filter(feature => feature.trim() !== '')
+        features: cleanedFeatures.length > 0 ? cleanedFeatures : []
       };
       
-      console.log('Araç verileri gönderiliyor:', JSON.stringify(carData));
+      // API endpoint ve method
+      const url = isEditMode ? `/api/cars/${id}` : '/api/cars';
+      const method = isEditMode ? 'PUT' : 'POST';
       
-      const url = id 
-        ? `/api/cars/${id}` 
-        : '/api/cars';
-      
-      const method = id ? 'PUT' : 'POST';
-      
+      // API isteği
       const response = await fetch(url, {
         method,
         headers: {
@@ -248,75 +315,24 @@ const EditCar: React.FC = () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || 'Bir hata oluştu');
+        throw new Error(errorData.error || errorData.message || 'İşlem sırasında bir hata oluştu');
       }
       
-      alert(id ? 'Araç başarıyla güncellendi!' : 'Araç başarıyla eklendi!');
+      // Başarı mesajı göster
+      setSuccess(isEditMode ? 'Araç başarıyla güncellendi' : 'Araç başarıyla eklendi');
       
-      // Başarılı işlemden sonra araç listesine yönlendir
-      navigate('/admin/cars');
-      
-    } catch (error) {
-      console.error('Form gönderme hatası:', error);
-      setError(error instanceof Error ? error.message : 'Bir hata oluştu');
+      // Araç listesine yönlendir
+      setTimeout(() => {
+        navigate('/admin/cars');
+      }, 1500);
+    } catch (err) {
+      console.error('Form gönderme hatası:', err);
+      setError(err instanceof Error ? err.message : 'İşlem sırasında bir hata oluştu');
     } finally {
-      setSubmitting(false);
+      setIsSaving(false);
     }
   };
-
-  // Input değişikliklerini yönet
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    
-    if (name === 'year' || name === 'seats' || name === 'price_per_day') {
-      setCar({
-        ...car,
-        [name]: value === '' ? null : Number(value)
-      });
-    } else {
-      setCar({
-        ...car,
-        [name]: value
-      });
-    }
-  };
-
-  // Özellik dizisini yönet
-  const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...car.features];
-    newFeatures[index] = value;
-    setCar({
-      ...car,
-      features: newFeatures
-    });
-  };
-
-  // Yeni özellik alanı ekle
-  const addFeatureField = () => {
-    setCar({
-      ...car,
-      features: [...car.features, '']
-    });
-  };
-
-  // Özellik alanını kaldır
-  const removeFeatureField = (index: number) => {
-    if (car.features.length <= 1) {
-      return; // En az bir özellik alanı olmalı
-    }
-    
-    const newFeatures = [...car.features];
-    newFeatures.splice(index, 1);
-    setCar({
-      ...car,
-      features: newFeatures
-    });
-  };
-
-  if (!isAuthenticated) {
-    return <div>Yükleniyor...</div>;
-  }
-
+  
   return (
     <div className="flex h-screen bg-gray-100">
       <AdminSidebar />
@@ -324,7 +340,7 @@ const EditCar: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader title={isEditMode ? "Araç Düzenle" : "Yeni Araç Ekle"} />
         
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-semibold text-gray-800">
               {isEditMode ? "Araç Düzenle" : "Yeni Araç Ekle"}
@@ -338,15 +354,22 @@ const EditCar: React.FC = () => {
           </div>
           
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-start">
+              <span className="mr-2">⚠️</span>
+              <span>{error}</span>
             </div>
           )}
           
-          {loading ? (
-            <div className="text-center py-10">
-              <div className="spinner"></div>
-              <p className="mt-2 text-gray-600">Yükleniyor...</p>
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-start">
+              <span className="mr-2">✅</span>
+              <span>{success}</span>
+            </div>
+          )}
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
@@ -354,30 +377,30 @@ const EditCar: React.FC = () => {
                 {/* Araç Adı */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Araç Adı
+                    Araç Adı <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="name"
                     value={car.name}
                     onChange={handleChange}
-                    required
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="Örn: Mercedes C180"
                   />
                 </div>
                 
                 {/* Kategori */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kategori
+                    Kategori <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="category"
                     value={car.category}
                     onChange={handleChange}
-                    required
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="Örn: Sedan, SUV, Ekonomik"
                   />
                 </div>
                 
@@ -391,7 +414,6 @@ const EditCar: React.FC = () => {
                     name="year"
                     value={car.year || ''}
                     onChange={handleChange}
-                    required
                     min="2000"
                     max="2030"
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
@@ -407,7 +429,6 @@ const EditCar: React.FC = () => {
                     name="fuel_type"
                     value={car.fuel_type}
                     onChange={handleChange}
-                    required
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
                   >
                     <option value="Diesel">Dizel</option>
@@ -427,7 +448,6 @@ const EditCar: React.FC = () => {
                     name="seats"
                     value={car.seats || ''}
                     onChange={handleChange}
-                    required
                     min="1"
                     max="50"
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
@@ -450,37 +470,75 @@ const EditCar: React.FC = () => {
                 </div>
               </div>
               
+              {/* Özellikler */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Özellikler
+                </label>
+                {car.features.map((feature, index) => (
+                  <div key={`feature-${index}`} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={feature}
+                      onChange={(e) => handleFeatureChange(index, e.target.value)}
+                      className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="Örn: Otomatik vites, Klima, Bluetooth"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFeatureField(index)}
+                      className="ml-2 text-red-600 hover:text-red-800"
+                      disabled={car.features.length <= 1}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addFeatureField}
+                  className="mt-2 text-sm text-amber-600 hover:text-amber-800 flex items-center"
+                >
+                  <Plus size={16} className="mr-1" /> Özellik Ekle
+                </button>
+              </div>
+              
               {/* Resim Yükleme Alanı */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">Araç Resimleri</h3>
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-3">Araç Resimleri</h3>
                 
-                {/* Yüklenen Resimler */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img 
-                        src={image} 
-                        alt={`Car image ${index + 1}`} 
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X size={16} />
-                      </button>
+                {/* Mevcut Resimler */}
+                {car.images.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">Mevcut Resimler:</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {car.images.map((image, index) => (
+                        <div key={`image-${index}`} className="relative group">
+                          <img 
+                            src={image} 
+                            alt={`Araç resmi ${index + 1}`} 
+                            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
                 
                 {/* Seçilen Dosyalar */}
-                {imageFiles.length > 0 && (
+                {selectedFiles.length > 0 && (
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Yüklenecek Dosyalar:</h4>
+                    <h4 className="text-sm font-medium mb-2">Yüklenecek Resimler:</h4>
                     <div className="space-y-2">
-                      {imageFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                      {selectedFiles.map((file, index) => (
+                        <div key={`file-${index}`} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
                           <div className="flex items-center">
                             <ImageIcon size={16} className="text-gray-500 mr-2" />
                             <span className="text-sm truncate max-w-xs">{file.name}</span>
@@ -497,17 +555,18 @@ const EditCar: React.FC = () => {
                       ))}
                     </div>
                     
+                    {/* Yükleme Butonu */}
                     <div className="mt-3 flex space-x-2">
                       <button
                         type="button"
-                        className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm flex items-center disabled:bg-blue-300"
-                        onClick={handleImageUpload}
-                        disabled={uploading}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center disabled:bg-blue-300"
+                        onClick={uploadImages}
+                        disabled={isUploading || selectedFiles.length === 0}
                       >
-                        {uploading ? (
+                        {isUploading ? (
                           <>
-                            <span className="spinner-sm mr-2"></span>
-                            Yükleniyor...
+                            <Loader size={16} className="mr-2 animate-spin" />
+                            Yükleniyor... {uploadProgress}%
                           </>
                         ) : (
                           <>
@@ -519,8 +578,9 @@ const EditCar: React.FC = () => {
                       
                       <button
                         type="button"
-                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm"
-                        onClick={() => setImageFiles([])}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm"
+                        onClick={() => setSelectedFiles([])}
+                        disabled={isUploading || selectedFiles.length === 0}
                       >
                         Temizle
                       </button>
@@ -529,11 +589,11 @@ const EditCar: React.FC = () => {
                 )}
                 
                 {/* Dosya Seçme Alanı */}
-                <div className="mt-3">
+                <div>
                   <input
                     type="file"
                     ref={fileInputRef}
-                    onChange={handleFileChange}
+                    onChange={handleFileSelect}
                     multiple
                     accept="image/*"
                     className="hidden"
@@ -541,8 +601,9 @@ const EditCar: React.FC = () => {
                   
                   <button
                     type="button"
-                    onClick={triggerFileInput}
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 w-full flex flex-col items-center justify-center hover:bg-gray-50 transition-colors"
+                    onClick={openFileDialog}
+                    disabled={isUploading}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 w-full flex flex-col items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     <Plus size={24} className="text-gray-400 mb-2" />
                     <span className="text-gray-500 font-medium">Resim Ekle</span>
@@ -550,56 +611,17 @@ const EditCar: React.FC = () => {
                     <span className="text-gray-400 text-xs mt-1">PNG, JPG, GIF (max. 5MB)</span>
                   </button>
                 </div>
-                
-                {/* Hata Mesajı */}
-                {uploadError && (
-                  <div className="mt-2 text-red-500 text-sm flex items-center">
-                    <AlertCircle size={16} className="mr-1" />
-                    {uploadError}
-                  </div>
-                )}
-              </div>
-              
-              {/* Özellikler */}
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Özellikler
-                </label>
-                {car.features.map((feature, index) => (
-                  <div key={`feature-${index}`} className="flex items-center mb-2">
-                    <input
-                      type="text"
-                      value={feature}
-                      onChange={(e) => handleFeatureChange(index, e.target.value)}
-                      className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                      placeholder="Araç özelliği"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeFeatureField(index)}
-                      className="ml-2 text-red-600 hover:text-red-800"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addFeatureField}
-                  className="mt-2 text-sm text-amber-600 hover:text-amber-800"
-                >
-                  + Özellik Ekle
-                </button>
               </div>
               
               {/* Gönder Butonu */}
               <div className="mt-8 flex justify-end">
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-md disabled:opacity-50"
+                  disabled={isSaving}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-md disabled:opacity-50 flex items-center"
                 >
-                  {submitting ? 'Kaydediliyor...' : (isEditMode ? 'Güncelle' : 'Ekle')}
+                  {isSaving && <Loader size={16} className="mr-2 animate-spin" />}
+                  {isSaving ? 'Kaydediliyor...' : (isEditMode ? 'Güncelle' : 'Ekle')}
                 </button>
               </div>
             </form>
