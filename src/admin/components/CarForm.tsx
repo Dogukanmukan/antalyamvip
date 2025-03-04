@@ -185,21 +185,9 @@ const CarForm: React.FC<CarFormProps> = ({
       newErrors.model = 'Model zorunludur.';
     }
     
-    if (formData.passengers <= 0) {
-      newErrors.passengers = 'Yolcu kapasitesi 1 veya daha fazla olmalıdır.';
-    }
-    
-    if (formData.luggage <= 0) {
-      newErrors.luggage = 'Bagaj kapasitesi 1 veya daha fazla olmalıdır.';
-    }
-    
-    if (parseFloat(formData.price.toString()) <= 0) {
-      newErrors.price = 'Fiyat 0\'dan büyük olmalıdır.';
-    }
-    
     setErrors(newErrors);
     
-    // Hata yoksa ve en az bir özellik varsa true döndür
+    // Hata yoksa true döndür
     return Object.keys(newErrors).length === 0;
   };
   
@@ -213,11 +201,20 @@ const CarForm: React.FC<CarFormProps> = ({
       
       // API'ye uygun formatta veriyi hazırla
       const apiFormData = {
-        ...formData,
-        features: filteredFeatures,
+        name: formData.name,
+        make: formData.make,
+        model: formData.model,
+        category: formData.category,
         seats: formData.passengers,
-        price_per_day: formData.price
+        luggage: formData.luggage,
+        price_per_day: formData.price,
+        status: formData.status,
+        description: formData.description,
+        features: filteredFeatures,
+        image: formData.image
       };
+      
+      console.log('Gönderilen form verisi:', apiFormData);
       
       // Formu gönder
       onSubmit(apiFormData);

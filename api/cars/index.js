@@ -67,14 +67,19 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const carData = req.body;
+      console.log('Received car data:', carData);
       
       // Gerekli alanları kontrol et
-      const requiredFields = ['name', 'make', 'model', 'seats', 'price_per_day'];
+      const requiredFields = ['name', 'make', 'model'];
       const missingFields = requiredFields.filter(field => !carData[field]);
       
       if (missingFields.length > 0) {
         return errorResponse(res, 400, 'Missing required fields', { missingFields });
       }
+      
+      // Varsayılan değerleri ekle
+      if (!carData.seats) carData.seats = 4;
+      if (!carData.price_per_day) carData.price_per_day = 0;
       
       // JSON alanlarını string'e çevir
       if (carData.features && Array.isArray(carData.features)) {
@@ -90,6 +95,8 @@ export default async function handler(req, res) {
         carData.status = 'active';
       }
       
+      console.log('Processed car data for insert:', carData);
+      
       // Aracı ekle
       const { data, error } = await supabase
         .from('cars')
@@ -98,7 +105,7 @@ export default async function handler(req, res) {
 
       if (error) {
         console.error('Supabase error:', error);
-        return errorResponse(res, 500, 'Database error', error.message);
+        return errorResponse(res, 500, 'Failed to add car', error);
       }
 
       return successResponse(res, data[0], 'Car created successfully', 201);

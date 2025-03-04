@@ -117,7 +117,7 @@ export const carsAPI = {
   
   getById: async (id: number) => {
     try {
-      const response = await apiClient.get(`/cars/${id}`);
+      const response = await apiClient.get(`/cars/id?id=${id}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -126,16 +126,34 @@ export const carsAPI = {
   
   create: async (carData: any) => {
     try {
-      const response = await apiClient.post('/cars', carData);
+      const requiredFields = ['name', 'make', 'model'];
+      const missingFields = requiredFields.filter(field => !carData[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+      
+      // Veri dönüşümü - passengers ve price alanlarını API'nin beklediği formata dönüştür
+      const apiData = {
+        ...carData,
+      };
+      
+      console.log('Creating car with data:', apiData);
+      const response = await apiClient.post('/cars', apiData);
+      console.log('API response:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error in create car API call:', error);
+      if (error.response) {
+        console.error('API error response:', error.response.data);
+      }
       throw error;
     }
   },
   
   update: async (id: number, carData: any) => {
     try {
-      const response = await apiClient.put(`/cars/${id}`, carData);
+      const response = await apiClient.put(`/cars/id?id=${id}`, carData);
       return response.data;
     } catch (error) {
       throw error;
@@ -144,9 +162,11 @@ export const carsAPI = {
   
   delete: async (id: number) => {
     try {
-      const response = await apiClient.delete(`/cars/${id}`);
+      console.log(`Deleting car with ID: ${id}`);
+      const response = await apiClient.delete(`/cars/id?id=${id}`);
       return response.data;
     } catch (error) {
+      console.error('Error in delete car API call:', error);
       throw error;
     }
   }
