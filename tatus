@@ -1,0 +1,5 @@
+[33mc3d1df2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Çoklu resim yükleme özelliği eklendi ve varsayılan tema karanlık mod olarak ayarlandı
+[33madaf6c8[m[33m ([m[1;31morigin/main[m[33m)[m Supabase Storage bucket otomatik oluşturma özelliği eklendi
+[33m01c24a7[m Formidable v3 entegrasyonu güncellendi
+[33meb5b757[m JWT kaldırıldı, Supabase Auth entegrasyonu tamamlandı
+[33m0b5787e[m Resim yükleme sorunu çözüldü ve kimlik doğrulama geliştirmeleri yapıldı

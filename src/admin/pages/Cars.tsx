@@ -121,8 +121,13 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       await carsAPI.delete(id);
       setCars(cars.filter(car => car.id !== id));
       setFilteredCars(filteredCars.filter(car => car.id !== id));
-    } catch (err) {
-      setError('Araç silinirken bir hata oluştu.');
+    } catch (err: any) {
+      // 409 hatası (Conflict) - Rezervasyonu olan araç silinemiyor
+      if (err.response && err.response.status === 409) {
+        setError('Bu araç rezervasyonlara bağlı olduğu için silinemiyor.');
+      } else {
+        setError('Araç silinirken bir hata oluştu.');
+      }
       console.error('Araç silinirken hata:', err);
     }
   };

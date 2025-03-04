@@ -302,7 +302,7 @@ const CarForm: React.FC<CarFormProps> = ({
       reader.onload = () => {
         previews.push(reader.result as string);
         if (previews.length === files.length) {
-          setPreviewImages([...previews]);
+          setPreviewImages(prev => [...prev, ...previews]);
         }
       };
       reader.readAsDataURL(file);
@@ -331,7 +331,7 @@ const CarForm: React.FC<CarFormProps> = ({
             
             setFormData(prev => ({
               ...prev,
-              images: results.map(r => r.url)
+              images: [...prev.images, ...results.map(r => r.url)]
             }));
             
             if (errors.images) {
@@ -367,7 +367,7 @@ const CarForm: React.FC<CarFormProps> = ({
       // Yüklenen dosyaların URL'lerini form verisine ekle
       setFormData(prev => ({
         ...prev,
-        images: results.map(r => r.url)
+        images: [...prev.images, ...results.map(r => r.url)]
       }));
       
       // Hata varsa temizle
