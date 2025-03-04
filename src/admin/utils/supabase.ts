@@ -27,6 +27,7 @@ export type Car = {
   seats: number;
   features?: any; // JSON object
   price_per_day: number;
+  status?: 'active' | 'maintenance' | 'unavailable';
   created_at: string;
 };
 

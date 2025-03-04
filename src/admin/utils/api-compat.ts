@@ -1,187 +1,162 @@
-import { authAPI as oldAuthAPI, bookingsAPI as oldBookingsAPI, carsAPI as oldCarsAPI, statsAPI as oldStatsAPI } from './api';
-import { authAPI as newAuthAPI, bookingsAPI as newBookingsAPI, carsAPI as newCarsAPI, statsAPI as newStatsAPI } from './api-supabase';
-import { settingsAPI as newSettingsAPI } from './api-supabase';
-import { convertSupabaseBookingToOld, convertOldCarToSupabase, convertSupabaseCarToOld } from './migration-helper';
+import { Car, Booking, DashboardStats } from './supabase';
+import apiClient from './api-client';
+import * as supabaseApi from './api-supabase';
 
-// Flag to control which API to use
-// Set this to true to use the Supabase API
-const USE_SUPABASE_API = true;
+// API seçimi için değişken
+export const USE_SUPABASE_API = false;
 
-// Authentication API
-export const authAPI = {
-  login: async (email: string, password: string) => {
-    if (USE_SUPABASE_API) {
-      return await newAuthAPI.login(email, password);
-    } else {
-      return await oldAuthAPI.login(email, password);
+// Uyumluluk katmanı - API'ler arasında geçiş yapmayı kolaylaştırır
+const api = {
+  // Kimlik doğrulama işlemleri
+  auth: {
+    login: async (email: string, password: string) => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.authAPI.login(email, password);
+      }
+      return apiClient.login(email, password);
+    },
+    
+    getCurrentUser: async () => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.authAPI.getCurrentUser();
+      }
+      return apiClient.getCurrentUser();
+    },
+    
+    logout: async () => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.authAPI.logout();
+      }
+      // Vercel API'de logout işlemi client-side yapılır
+      localStorage.removeItem('adminToken');
+      return Promise.resolve();
     }
   },
   
-  logout: () => {
-    if (USE_SUPABASE_API) {
-      return newAuthAPI.logout();
-    } else {
-      return oldAuthAPI.logout();
+  // Araç işlemleri
+  cars: {
+    getAll: async (params?: { status?: string; limit?: number; offset?: number }): Promise<Car[]> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.carsAPI.getAll();
+      }
+      return apiClient.getCars(params);
+    },
+    
+    getById: async (id: string): Promise<Car> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.carsAPI.getById(id);
+      }
+      return apiClient.getCar(id);
+    },
+    
+    create: async (carData: Partial<Car>): Promise<Car> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.carsAPI.create(carData);
+      }
+      return apiClient.createCar(carData);
+    },
+    
+    update: async (id: string, carData: Partial<Car>): Promise<Car> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.carsAPI.update(id, carData);
+      }
+      return apiClient.updateCar(id, carData);
+    },
+    
+    updateStatus: async (id: string, status: string): Promise<Car> => {
+      if (USE_SUPABASE_API) {
+        // Eğer Supabase API'de updateStatus metodu yoksa update metodunu kullan
+        return supabaseApi.carsAPI.update(id, { status: status as any });
+      }
+      return apiClient.updateCarStatus(id, status);
+    },
+    
+    delete: async (id: string): Promise<void> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.carsAPI.delete(id);
+      }
+      return apiClient.deleteCar(id);
     }
   },
   
-  getCurrentUser: () => {
-    if (USE_SUPABASE_API) {
-      return newAuthAPI.getCurrentUser();
-    } else {
-      return oldAuthAPI.getCurrentUser();
+  // Rezervasyon işlemleri
+  bookings: {
+    getAll: async (params?: { status?: string; limit?: number; offset?: number }): Promise<Booking[]> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.bookingsAPI.getAll();
+      }
+      return apiClient.getBookings(params);
+    },
+    
+    getById: async (id: string): Promise<Booking> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.bookingsAPI.getById(id);
+      }
+      return apiClient.getBooking(id);
+    },
+    
+    create: async (bookingData: Partial<Booking>): Promise<Booking> => {
+      if (USE_SUPABASE_API) {
+        // Supabase API'de create metodu yoksa, uygun bir alternatif kullan
+        throw new Error('Create booking method not implemented in Supabase API');
+      }
+      return apiClient.createBooking(bookingData);
+    },
+    
+    update: async (id: string, bookingData: Partial<Booking>): Promise<Booking> => {
+      if (USE_SUPABASE_API) {
+        // Supabase API'de update metodu yoksa, uygun bir alternatif kullan
+        throw new Error('Update booking method not implemented in Supabase API');
+      }
+      return apiClient.updateBooking(id, bookingData);
+    },
+    
+    updateStatus: async (id: string, status: string): Promise<Booking> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.bookingsAPI.updateStatus(id, status);
+      }
+      return apiClient.updateBookingStatus(id, status);
+    },
+    
+    delete: async (id: string): Promise<void> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.bookingsAPI.delete(id);
+      }
+      return apiClient.deleteBooking(id);
+    }
+  },
+  
+  // İstatistik işlemleri
+  stats: {
+    getDashboardStats: async (params?: { start_date?: string; end_date?: string }): Promise<DashboardStats> => {
+      if (USE_SUPABASE_API) {
+        return supabaseApi.statsAPI.getDashboardStats();
+      }
+      return apiClient.getDashboardStats(params);
+    }
+  },
+  
+  // Dosya yükleme işlemleri
+  files: {
+    upload: async (file: File, folder: string = 'uploads'): Promise<{ url: string; path: string }> => {
+      if (USE_SUPABASE_API) {
+        // Supabase API'de dosya yükleme işlemi yoksa, uygun bir alternatif kullan
+        throw new Error('File upload method not implemented in Supabase API');
+      }
+      return apiClient.uploadFile(file, folder);
+    }
+  },
+  
+  // Veritabanı işlemleri
+  database: {
+    init: async (seedData: boolean = false): Promise<any> => {
+      if (USE_SUPABASE_API) {
+        // Supabase API'de veritabanı başlatma işlemi yoksa, uygun bir alternatif kullan
+        throw new Error('Database initialization method not implemented in Supabase API');
+      }
+      return apiClient.initDatabase(seedData);
     }
   }
 };
 
-// Bookings API
-export const bookingsAPI = {
-  getAll: async () => {
-    if (USE_SUPABASE_API) {
-      const bookings = await newBookingsAPI.getAll();
-      // Convert to old format for backward compatibility
-      return bookings.map(convertSupabaseBookingToOld);
-    } else {
-      return await oldBookingsAPI.getAll();
-    }
-  },
-  
-  getById: async (id: number | string) => {
-    if (USE_SUPABASE_API) {
-      const booking = await newBookingsAPI.getById(id.toString());
-      // Convert to old format for backward compatibility
-      return convertSupabaseBookingToOld(booking);
-    } else {
-      return await oldBookingsAPI.getById(Number(id));
-    }
-  },
-  
-  updateStatus: async (id: number | string, status: string) => {
-    if (USE_SUPABASE_API) {
-      const booking = await newBookingsAPI.updateStatus(id.toString(), status);
-      // Convert to old format for backward compatibility
-      return convertSupabaseBookingToOld(booking);
-    } else {
-      return await oldBookingsAPI.updateStatus(Number(id), status);
-    }
-  },
-  
-  delete: async (id: number | string) => {
-    if (USE_SUPABASE_API) {
-      return await newBookingsAPI.delete(id.toString());
-    } else {
-      return await oldBookingsAPI.delete(Number(id));
-    }
-  }
-};
-
-// Cars API
-export const carsAPI = {
-  getAll: async () => {
-    if (USE_SUPABASE_API) {
-      const cars = await newCarsAPI.getAll();
-      // Convert to old format for backward compatibility
-      return cars.map(convertSupabaseCarToOld);
-    } else {
-      return await oldCarsAPI.getAll();
-    }
-  },
-  
-  getById: async (id: number | string) => {
-    if (USE_SUPABASE_API) {
-      const car = await newCarsAPI.getById(id.toString());
-      // Convert to old format for backward compatibility
-      return convertSupabaseCarToOld(car);
-    } else {
-      return await oldCarsAPI.getById(Number(id));
-    }
-  },
-  
-  create: async (carData: any) => {
-    if (USE_SUPABASE_API) {
-      // Convert to Supabase format
-      const supabaseCar = convertOldCarToSupabase(carData);
-      const car = await newCarsAPI.create(supabaseCar);
-      // Convert back to old format for backward compatibility
-      return convertSupabaseCarToOld(car);
-    } else {
-      return await oldCarsAPI.create(carData);
-    }
-  },
-  
-  update: async (id: number | string, carData: any) => {
-    if (USE_SUPABASE_API) {
-      // Convert to Supabase format
-      const supabaseCar = convertOldCarToSupabase(carData);
-      const car = await newCarsAPI.update(id.toString(), supabaseCar);
-      // Convert back to old format for backward compatibility
-      return convertSupabaseCarToOld(car);
-    } else {
-      return await oldCarsAPI.update(Number(id), carData);
-    }
-  },
-  
-  delete: async (id: number | string) => {
-    if (USE_SUPABASE_API) {
-      return await newCarsAPI.delete(id.toString());
-    } else {
-      return await oldCarsAPI.delete(Number(id));
-    }
-  }
-};
-
-// Stats API
-export const statsAPI = {
-  getDashboardStats: async () => {
-    if (USE_SUPABASE_API) {
-      return await newStatsAPI.getDashboardStats();
-    } else {
-      return await oldStatsAPI.getDashboardStats();
-    }
-  }
-};
-
-// Settings API (only available in new API)
-export const settingsAPI = {
-  getSettings: async (): Promise<any> => {
-    if (USE_SUPABASE_API) {
-      return await newSettingsAPI.getSettings();
-    } else {
-      // Fallback for old API
-      return {
-        id: 1,
-        general: {
-          siteName: 'Alanyam VIP',
-          contactEmail: 'info@alanyamvip.com',
-          contactPhone: '+90 555 123 4567'
-        },
-        appearance: {
-          theme: 'light',
-          primaryColor: '#F59E0B',
-          logo: '/uploads/logo.png'
-        },
-        notifications: {
-          emailNotifications: true,
-          smsNotifications: false
-        }
-      };
-    }
-  },
-  
-  updateSettings: async (settings: any): Promise<any> => {
-    if (USE_SUPABASE_API) {
-      return await newSettingsAPI.updateSettings(settings);
-    } else {
-      // Fallback for old API - just return the settings as if they were saved
-      return settings;
-    }
-  }
-};
-
-export default {
-  auth: authAPI,
-  bookings: bookingsAPI,
-  cars: carsAPI,
-  stats: statsAPI,
-  settings: settingsAPI
-}; 
+export default api; 
