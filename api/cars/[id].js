@@ -21,9 +21,9 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  // Extract car ID from the URL
-  const id = req.url.split('/').pop();
-  console.log('Car ID:', id);
+  // Extract car ID from the query parameters
+  const { id } = req.query;
+  console.log('Car ID from query:', id);
 
   if (!id || isNaN(parseInt(id))) {
     console.error('Invalid car ID:', id);
@@ -47,12 +47,12 @@ module.exports = async (req, res) => {
     console.error('Error in cars/[id] handler:', error);
     return res.status(500).json({ 
       error: 'Internal server error', 
-      message: error.message
+      message: error.message 
     });
   }
 };
 
-// Get a single car by ID
+// Get a car by ID
 async function getCar(req, res, id) {
   console.log('Fetching car with ID:', id);
   
@@ -65,23 +65,25 @@ async function getCar(req, res, id) {
 
     if (error) {
       console.error('Error fetching car:', error);
-      return res.status(404).json({ error: 'Car not found' });
+      return res.status(500).json({ 
+        error: 'Failed to fetch car', 
+        message: error.message
+      });
     }
 
     if (!data) {
-      console.error('Car not found with ID:', id);
+      console.error('Car not found:', id);
       return res.status(404).json({ error: 'Car not found' });
     }
 
-    console.log('Car found:', data.id);
-    
-    // Process arrays for response
+    // Process JSON fields
     const processedData = {
       ...data,
       images: processJsonField(data.images),
       features: processJsonField(data.features)
     };
-    
+
+    console.log('Car fetched successfully:', id);
     return res.status(200).json(processedData);
   } catch (error) {
     console.error('Error in getCar:', error);
@@ -137,15 +139,19 @@ async function updateCar(req, res, id) {
       });
     }
 
-    console.log('Car updated successfully:', id);
-    
-    // Process arrays for response
-    const processedResponse = data && data[0] ? {
+    if (!data || data.length === 0) {
+      console.error('Car not found for update:', id);
+      return res.status(404).json({ error: 'Car not found' });
+    }
+
+    // Process JSON fields for response
+    const processedResponse = {
       ...data[0],
       images: processJsonField(data[0].images),
       features: processJsonField(data[0].features)
-    } : { id: parseInt(id) };
-    
+    };
+
+    console.log('Car updated successfully:', id);
     return res.status(200).json(processedResponse);
   } catch (error) {
     console.error('Error in updateCar:', error);
@@ -189,14 +195,13 @@ async function deleteCar(req, res, id) {
 function processJsonField(field) {
   if (!field) return [];
   
-  if (typeof field === 'string') {
-    try {
+  try {
+    if (typeof field === 'string') {
       return JSON.parse(field);
-    } catch (e) {
-      console.error('Error parsing JSON field:', e);
-      return field.split(',').map(item => item.trim());
     }
+    return field;
+  } catch (error) {
+    console.error('Error parsing JSON field:', error);
+    return [];
   }
-  
-  return field;
 }
