@@ -46,10 +46,15 @@ apiClient.interceptors.response.use(
 export const authAPI = {
   login: async (email: string, password: string) => {
     try {
-      console.log('API: Sending login request to', `${API_BASE_URL}/api/auth/login`);
+      // URL'deki /api yolunu düzelt - API_BASE_URL zaten /api içeriyor olabilir
+      const loginUrl = API_BASE_URL.endsWith('/api') 
+        ? `${API_BASE_URL}/auth/login` 
+        : `${API_BASE_URL}/api/auth/login`;
+      
+      console.log('API: Sending login request to', loginUrl);
       console.log('API: Request payload:', { email, password: '******' });
       
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      const response = await axios.post(loginUrl, {
         email,
         password,
       });
