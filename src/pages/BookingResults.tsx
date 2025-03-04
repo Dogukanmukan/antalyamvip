@@ -43,11 +43,36 @@ const BookingResults: React.FC = () => {
         if (!response.ok) {
           throw new Error('Araçlar yüklenirken bir hata oluştu');
         }
-        const data = await response.json();
-        setCars(data);
+        
+        const responseData = await response.json();
+        console.log('API yanıtı:', responseData);
+        
+        // API yanıtının yapısını kontrol et
+        let carsData = [];
+        
+        if (responseData && responseData.success && Array.isArray(responseData.data)) {
+          // API başarılı yanıt formatı: { success: true, data: [...] }
+          carsData = responseData.data;
+        } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
+          // Supabase API formatı: { data: [...] }
+          carsData = responseData.data;
+        } else if (Array.isArray(responseData)) {
+          // Doğrudan dizi formatı
+          carsData = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          // Tek bir nesne olabilir, dizi içine al
+          carsData = [responseData];
+        } else {
+          // Hiçbir format uyuşmuyorsa boş dizi kullan
+          carsData = [];
+        }
+        
+        console.log('İşlenmiş araç verileri:', carsData);
+        setCars(carsData);
       } catch (error) {
         console.error('Araçları getirme hatası:', error);
         setError('Araçlar yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+        setCars([]);
       }
     };
 

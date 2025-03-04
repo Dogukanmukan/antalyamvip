@@ -9,14 +9,32 @@ interface CarCardProps {
   car: Car;
 }
 
+// JSON string'i güvenli bir şekilde parse etmek için yardımcı fonksiyon
+const safeJsonParse = (jsonString: string | any, defaultValue: any[] = []): any[] => {
+  if (Array.isArray(jsonString)) return jsonString;
+  if (!jsonString) return defaultValue;
+  
+  try {
+    if (typeof jsonString === 'string') {
+      return JSON.parse(jsonString);
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error('JSON parse error:', error);
+    return defaultValue;
+  }
+};
+
 const CarCard: React.FC<CarCardProps> = ({ car }) => {
   const { t } = useTranslation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Güvenli erişim için yardımcı fonksiyonlar
-  const safeImages = Array.isArray(car.images) ? car.images : [];
-  const safeImageUrl = safeImages.length > 0 ? safeImages[currentImageIndex] : (car.image || '/images/placeholder.jpg');
+  const safeImages = car && car.images ? safeJsonParse(car.images, []) : [];
+  const safeImageUrl = safeImages.length > 0 ? 
+    safeImages[currentImageIndex] : 
+    (car && car.image ? car.image : '/images/placeholder.jpg');
   
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();

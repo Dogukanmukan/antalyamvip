@@ -27,11 +27,15 @@ const Fleet = () => {
         }
         
         const responseData = await response.json();
+        console.log('API yanıtı:', responseData);
         
         // API yanıtının yapısını kontrol et
         let carsData = [];
         
-        if (responseData && responseData.data && Array.isArray(responseData.data)) {
+        if (responseData && responseData.success && Array.isArray(responseData.data)) {
+          // API başarılı yanıt formatı: { success: true, data: [...] }
+          carsData = responseData.data;
+        } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
           // Supabase API formatı: { data: [...] }
           carsData = responseData.data;
         } else if (Array.isArray(responseData)) {
@@ -45,6 +49,7 @@ const Fleet = () => {
           carsData = [];
         }
         
+        console.log('İşlenmiş araç verileri:', carsData);
         // Veriyi ayarla
         setCars(carsData);
         setFilteredCars(carsData);
