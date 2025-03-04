@@ -1,5 +1,6 @@
 // Giriş yapma API endpoint
-import { supabase, setCorsHeaders, errorResponse, successResponse } from '../_lib/supabase.js';
+import { setCorsHeaders, errorResponse, successResponse } from '../_lib/supabase.js';
+import { findAdminByEmail, verifyPassword } from '../_lib/db/adminUsers.js';
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
@@ -9,8 +10,6 @@ export default async function handler(req, res) {
   console.log('API Request received to /api/auth/login');
   console.log('Request method:', req.method);
   console.log('Environment check - JWT_SECRET exists:', !!process.env.JWT_SECRET);
-  console.log('Environment check - SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
-  console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   // JWT_SECRET çevre değişkenini kontrol et
   if (!process.env.JWT_SECRET) {
@@ -38,32 +37,34 @@ export default async function handler(req, res) {
       return errorResponse(res, 400, 'Email and password are required');
     }
     
-    // Supabase ile kimlik doğrulama
-    console.log('Authenticating with Supabase...');
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (authError) {
-      console.error('Supabase auth error:', authError);
-      return errorResponse(res, 401, 'Invalid credentials', authError.message);
-    }
-
-    console.log('Supabase authentication successful:', authData);
+    // Admin kullanıcısını bul
+    console.log('Finding admin user by email...');
+    const adminUser = await findAdminByEmail(email);
     
-    // Doğrudan session'dan kullanıcı bilgilerini al
-    if (!authData || !authData.user) {
-      console.error('Auth data is missing user information:', authData);
-      return errorResponse(res, 500, 'Authentication successful but user data is missing');
+    if (!adminUser) {
+      console.error('Admin user not found for email:', email);
+      return errorResponse(res, 401, 'Invalid credentials');
     }
     
-    const userData = authData.user;
-    console.log('User data from auth response:', userData);
+    console.log('Admin user found, verifying password...');
     
-    // Kullanıcı rolünü al
-    const userRole = userData.app_metadata?.role || 'user';
-    console.log('User role:', userRole);
+    // Şifreyi doğrula
+    const isPasswordValid = await verifyPassword(password, adminUser.password_hash);
+    
+    if (!isPasswordValid) {
+      console.error('Invalid password for user:', email);
+      return errorResponse(res, 401, 'Invalid credentials');
+    }
+    
+    console.log('Password verified successfully');
+    
+    // Hassas bilgileri kaldır
+    const userData = {
+      id: adminUser.id,
+      email: adminUser.email,
+      username: adminUser.username || adminUser.email.split('@')[0],
+      role: adminUser.role
+    };
     
     try {
       console.log('Creating JWT token...');
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
         { 
           id: userData.id, 
           email: userData.email,
-          role: userRole
+          role: userData.role
         },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
@@ -81,12 +82,7 @@ export default async function handler(req, res) {
       
       // Başarılı yanıt
       return successResponse(res, {
-        user: {
-          id: userData.id,
-          email: userData.email,
-          username: userData.email.split('@')[0], // E-postadan basit bir kullanıcı adı oluştur
-          role: userRole
-        },
+        user: userData,
         token
       });
     } catch (jwtError) {
