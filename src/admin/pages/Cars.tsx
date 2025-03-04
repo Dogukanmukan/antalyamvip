@@ -66,9 +66,14 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
     setError('');
     
     try {
+      console.log('Fetching cars from API...');
       const response = await carsAPI.getAll();
+      console.log('Cars API response:', response);
+      
       // API yanıtının dizi olup olmadığını kontrol et
       const carsArray = Array.isArray(response) ? response : [];
+      console.log(`Processed ${carsArray.length} cars`);
+      
       setCars(carsArray);
       setFilteredCars(carsArray);
     } catch (err) {

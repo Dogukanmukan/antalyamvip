@@ -7,13 +7,41 @@ import { getRuntimeConfig } from '../../lib/config';
 const supabaseUrl = getRuntimeConfig('SUPABASE_URL');
 const supabaseKey = getRuntimeConfig('SUPABASE_ANON_KEY');
 
+// Ensure we have valid Supabase credentials
+if (!supabaseUrl || !supabaseKey) {
+  console.error('CRITICAL ERROR: Missing Supabase credentials in api-supabase.ts', {
+    url: supabaseUrl ? 'defined' : 'undefined',
+    key: supabaseKey ? 'defined (length: ' + supabaseKey.length + ')' : 'undefined'
+  });
+}
+
 // Log configuration for debugging
-console.log('API-Supabase Config:', { 
+console.log('API-Supabase Client Initializing:', { 
   url: supabaseUrl,
   keyLength: supabaseKey ? supabaseKey.length : 0
 });
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client with detailed options
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true
+  }
+});
+
+// Test the connection
+(async () => {
+  try {
+    const { data, error } = await supabase.from('cars').select('count').limit(1);
+    if (error) {
+      console.error('Supabase connection test failed:', error.message);
+    } else {
+      console.log('Supabase connection test successful:', data);
+    }
+  } catch (err) {
+    console.error('Supabase connection test exception:', err);
+  }
+})();
 
 // Authentication API
 export const authAPI = {
@@ -85,20 +113,30 @@ export const authAPI = {
 // Bookings API
 export const bookingsAPI = {
   getAll: async (): Promise<Booking[]> => {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*, car:cars(*)')
-      .order('created_at', { ascending: false });
+    console.log('bookingsAPI.getAll: Fetching all bookings from Supabase');
+    
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*, car:cars(*)')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('bookingsAPI.getAll: Supabase error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log(`bookingsAPI.getAll: Successfully fetched ${data?.length || 0} bookings`);
+      
+      return (data || []).map(booking => ({
+        ...booking,
+        // Parse JSON strings if needed
+        car: booking.car as Car
+      })) as Booking[];
+    } catch (err) {
+      console.error('bookingsAPI.getAll: Exception:', err);
+      throw err;
     }
-
-    return (data || []).map(booking => ({
-      ...booking,
-      // Parse JSON strings if needed
-      car: booking.car as Car
-    })) as Booking[];
   },
 
   getById: async (id: string): Promise<Booking> => {
@@ -168,21 +206,31 @@ export const bookingsAPI = {
 // Cars API
 export const carsAPI = {
   getAll: async (): Promise<Car[]> => {
-    const { data, error } = await supabase
-      .from('cars')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('carsAPI.getAll: Fetching all cars from Supabase');
+    
+    try {
+      const { data, error } = await supabase
+        .from('cars')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('carsAPI.getAll: Supabase error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log(`carsAPI.getAll: Successfully fetched ${data?.length || 0} cars`);
+      
+      return (data || []).map(car => ({
+        ...car,
+        // Parse JSON strings if needed
+        images: safeJsonParse(car.images as string, []),
+        features: safeJsonParse(car.features as string, {})
+      })) as Car[];
+    } catch (err) {
+      console.error('carsAPI.getAll: Exception:', err);
+      throw err;
     }
-
-    return (data || []).map(car => ({
-      ...car,
-      // Parse JSON strings if needed
-      images: safeJsonParse(car.images as string, []),
-      features: safeJsonParse(car.features as string, {})
-    })) as Car[];
   },
 
   getById: async (id: string): Promise<Car> => {

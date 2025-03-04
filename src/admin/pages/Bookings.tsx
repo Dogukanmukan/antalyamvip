@@ -244,9 +244,13 @@ const Bookings: React.FC = () => {
       setError(null);
       
       try {
+        console.log('Fetching bookings from API...');
         const data = await api.bookings.getAll();
+        console.log('Bookings API response:', data);
+        
         // API yanıtının dizi olup olmadığını kontrol et
         const bookingsArray = Array.isArray(data) ? data : [];
+        console.log(`Processed ${bookingsArray.length} bookings`);
         
         // Verileri işle ve görüntüleme için hazırla
         const processedBookings = bookingsArray.map(booking => {

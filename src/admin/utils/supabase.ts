@@ -5,14 +5,41 @@ import { getRuntimeConfig } from '../../lib/config';
 const supabaseUrl = getRuntimeConfig('SUPABASE_URL');
 const supabaseAnonKey = getRuntimeConfig('SUPABASE_ANON_KEY');
 
+// Ensure we have valid Supabase credentials
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('CRITICAL ERROR: Missing Supabase credentials in admin/utils/supabase.ts', {
+    url: supabaseUrl ? 'defined' : 'undefined',
+    key: supabaseAnonKey ? 'defined (length: ' + supabaseAnonKey.length + ')' : 'undefined'
+  });
+}
+
 // Log configuration source for debugging
-console.log('Admin Supabase Config:', {
+console.log('Admin Supabase Client Initializing:', {
   url: supabaseUrl,
   keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
 });
 
-// Create a single supabase client for the admin panel
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a single supabase client for the admin panel with detailed options
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true
+  }
+});
+
+// Test the connection
+(async () => {
+  try {
+    const { data, error } = await supabase.from('cars').select('count').limit(1);
+    if (error) {
+      console.error('Admin Supabase connection test failed:', error.message);
+    } else {
+      console.log('Admin Supabase connection test successful:', data);
+    }
+  } catch (err) {
+    console.error('Admin Supabase connection test exception:', err);
+  }
+})();
 
 // Type definitions for database tables
 export type User = {

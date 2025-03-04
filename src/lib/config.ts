@@ -25,6 +25,13 @@ export function injectRuntimeConfig() {
       APP_NAME: config.app.name,
       APP_URL: config.app.url,
     };
+    
+    // Log configuration for debugging
+    console.log('Runtime Config Injected:', {
+      SUPABASE_URL: config.supabase.url,
+      SUPABASE_ANON_KEY_LENGTH: config.supabase.anonKey ? config.supabase.anonKey.length : 0,
+      API_BASE_URL: config.api.baseUrl,
+    });
   }
 }
 
@@ -43,11 +50,25 @@ declare global {
 
 // Export a function to get runtime config values
 export function getRuntimeConfig(key: keyof Window['__CONFIG__']) {
-  if (typeof window !== 'undefined' && window.__CONFIG__) {
-    return window.__CONFIG__[key];
+  // Debug log for tracking config access
+  console.log(`Getting runtime config for: ${key}`);
+  
+  // Check if window is defined (browser environment)
+  if (typeof window !== 'undefined') {
+    // Check if __CONFIG__ is initialized
+    if (!window.__CONFIG__) {
+      console.warn('Runtime config not initialized! Injecting now...');
+      injectRuntimeConfig();
+    }
+    
+    // Get value from window.__CONFIG__
+    const value = window.__CONFIG__[key];
+    console.log(`Runtime config value for ${key}:`, key.includes('KEY') ? `[length: ${value?.length || 0}]` : value);
+    return value;
   }
   
-  // Fallback to build-time config
+  // Fallback to build-time config for server-side rendering
+  console.log(`Using build-time config for ${key} (server-side)`);
   switch (key) {
     case 'SUPABASE_URL': return config.supabase.url;
     case 'SUPABASE_ANON_KEY': return config.supabase.anonKey;
