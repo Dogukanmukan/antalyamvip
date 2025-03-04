@@ -116,6 +116,9 @@ const AdminBookings: React.FC = () => {
 
   const updateBookingStatus = async (id: number, status: string) => {
     try {
+      setLoading(true);
+      console.log(`Updating booking ${id} status to: ${status}`);
+      
       const response = await fetch(`/api/bookings/${id}/status`, {
         method: 'PUT',
         headers: {
@@ -123,6 +126,18 @@ const AdminBookings: React.FC = () => {
         },
         body: JSON.stringify({ status }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        throw new Error(errorData.error || errorData.message || 'Rezervasyon durumu güncellenirken bir hata oluştu');
+      }
 
       const data = await response.json();
 
@@ -137,7 +152,9 @@ const AdminBookings: React.FC = () => {
       }
     } catch (err) {
       console.error('Error updating booking status:', err);
-      alert('Rezervasyon durumu güncellenirken bir hata oluştu.');
+      alert(err instanceof Error ? err.message : 'Rezervasyon durumu güncellenirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
     }
   };
 
