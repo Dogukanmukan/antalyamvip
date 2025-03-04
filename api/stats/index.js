@@ -16,74 +16,58 @@ export default async function handler(req, res) {
   // GET isteği - istatistikleri getir
   if (req.method === 'GET') {
     try {
-      // Tarih aralığı parametrelerini al
-      const { start_date, end_date } = req.query;
-      
-      // Varsayılan tarih aralığı: son 30 gün
-      const endDate = end_date ? new Date(end_date) : new Date();
-      const startDate = start_date ? new Date(start_date) : new Date(endDate);
-      
-      if (!start_date) {
-        startDate.setDate(startDate.getDate() - 30);
-      }
-      
-      // Tarih formatını ISO string'e çevir
-      const startIso = startDate.toISOString();
-      const endIso = endDate.toISOString();
-      
       // Paralel sorgular için Promise.all kullan
       const [
-        bookingsCountResult,
-        bookingsByStatusResult,
+        totalBookingsResult,
+        totalCarsResult,
+        activeBookingsResult,
         revenueResult,
-        topCarsResult,
-        carsByStatusResult
+        recentBookingsResult
       ] = await Promise.all([
         // 1. Toplam rezervasyon sayısı
         supabase
           .from('bookings')
-          .select('id', { count: 'exact' })
-          .gte('created_at', startIso)
-          .lte('created_at', endIso),
+          .select('id', { count: 'exact' }),
           
-        // 2. Durumlara göre rezervasyon sayıları
+        // 2. Toplam araç sayısı
+        supabase
+          .from('cars')
+          .select('id', { count: 'exact' }),
+          
+        // 3. Aktif rezervasyon sayısı (pending veya confirmed)
         supabase
           .from('bookings')
-          .select('status')
-          .gte('created_at', startIso)
-          .lte('created_at', endIso),
+          .select('id', { count: 'exact' })
+          .in('status', ['pending', 'confirmed']),
           
-        // 3. Toplam gelir (onaylanmış rezervasyonlar)
+        // 4. Toplam gelir
         supabase
           .from('bookings')
           .select('total_price')
-          .in('status', ['confirmed', 'completed'])
-          .gte('created_at', startIso)
-          .lte('created_at', endIso),
+          .in('status', ['confirmed', 'completed']),
           
-        // 4. En çok rezerve edilen araçlar
+        // 5. Son rezervasyonlar
         supabase
           .from('bookings')
           .select(`
-            car_id,
-            cars!inner(make, model)
+            id, 
+            full_name, 
+            pickup_date, 
+            status, 
+            total_price,
+            car:cars(id, name, make, model)
           `)
-          .gte('created_at', startIso)
-          .lte('created_at', endIso),
-          
-        // 5. Araç durumlarına göre sayılar
-        supabase
-          .from('cars')
-          .select('status')
+          .order('created_at', { ascending: false })
+          .limit(5)
       ]);
       
       // Hata kontrolü
       const errors = [
-        bookingsCountResult.error,
-        bookingsByStatusResult.error,
+        totalBookingsResult.error,
+        totalCarsResult.error,
+        activeBookingsResult.error,
         revenueResult.error,
-        topCarsResult.error,
-        carsByStatusResult.error
+        recentBookingsResult.error
       ].filter(Boolean);
       
       if (errors.length > 0) {
@@ -91,61 +75,53 @@ export default async function handler(req, res) {
         return errorResponse(res, 500, 'Database error', errors);
       }
       
-      // Durumlara göre rezervasyon sayılarını hesapla
-      const bookingsByStatus = bookingsByStatusResult.data.reduce((acc, booking) => {
-        acc[booking.status] = (acc[booking.status] || 0) + 1;
-        return acc;
-      }, {});
-      
       // Toplam geliri hesapla
       const totalRevenue = revenueResult.data.reduce((sum, booking) => {
-        return sum + (booking.total_price || 0);
+        return sum + (parseFloat(booking.total_price) || 0);
       }, 0);
       
-      // En çok rezerve edilen araçları hesapla
-      const carCounts = topCarsResult.data.reduce((acc, booking) => {
-        const carId = booking.car_id;
-        if (!acc[carId]) {
-          acc[carId] = {
-            car_id: carId,
-            make: booking.cars?.make,
-            model: booking.cars?.model,
-            count: 0
-          };
-        }
-        acc[carId].count++;
-        return acc;
-      }, {});
+      // Son rezervasyonları formatla
+      const recentBookings = recentBookingsResult.data.map(booking => ({
+        id: booking.id,
+        customer: booking.full_name,
+        date: booking.pickup_date,
+        status: booking.status,
+        amount: parseFloat(booking.total_price) || 0,
+        car: booking.car ? `${booking.car.make} ${booking.car.model}` : 'Unknown'
+      }));
       
-      // En çok rezerve edilen 5 aracı al
-      const topCars = Object.values(carCounts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+      // En popüler araçları bul
+      const { data: popularCarsData, error: popularCarsError } = await supabase
+        .from('cars')
+        .select(`
+          id,
+          name,
+          make,
+          model,
+          image
+        `)
+        .order('created_at', { ascending: false })
+        .limit(3);
+        
+      if (popularCarsError) {
+        console.error('Error fetching popular cars:', popularCarsError);
+      }
       
-      // Araç durumlarına göre sayıları hesapla
-      const carsByStatus = carsByStatusResult.data.reduce((acc, car) => {
-        acc[car.status] = (acc[car.status] || 0) + 1;
-        return acc;
-      }, {});
+      // Popüler araçları formatla
+      const popularCars = (popularCarsData || []).map(car => ({
+        id: car.id,
+        name: car.name || `${car.make} ${car.model}`,
+        image: car.image || '/images/car-placeholder.png'
+      }));
       
       // Sonuçları birleştir
       const stats = {
-        period: {
-          start_date: startIso,
-          end_date: endIso
-        },
-        bookings: {
-          total: bookingsCountResult.count,
-          by_status: bookingsByStatus
-        },
-        revenue: {
-          total: totalRevenue,
-          currency: 'TRY' // Varsayılan para birimi
-        },
-        cars: {
-          by_status: carsByStatus,
-          top_booked: topCars
-        }
+        totalBookings: totalBookingsResult.count || 0,
+        totalCars: totalCarsResult.count || 0,
+        activeBookings: activeBookingsResult.count || 0,
+        monthlyRevenue: totalRevenue,
+        recentBookings,
+        popularCars
       };
 
       return successResponse(res, stats);

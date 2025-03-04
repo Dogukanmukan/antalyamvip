@@ -75,8 +75,7 @@ export default async function handler(req, res) {
         username: userData.username,
         role: userData.role || 'user'
       },
-      token,
-      expiresIn: 86400 // 24 saat (saniye cinsinden)
+      token
     });
   } catch (error) {
     console.error('Login error:', error);

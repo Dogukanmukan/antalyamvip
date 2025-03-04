@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       // Query parametrelerini al
-      const { status, limit = 50, offset = 0, sort_by = 'created_at', sort_order = 'desc' } = req.query;
+      const { featured, status, limit = 50, offset = 0 } = req.query;
       
       // Sorguyu oluştur
       let query = supabase
@@ -29,20 +29,32 @@ export default async function handler(req, res) {
         query = query.eq('status', status);
       }
       
-      // Sıralama ve sayfalama
-      query = query
-        .order(sort_by, { ascending: sort_order.toLowerCase() === 'asc' })
-        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      // Öne çıkan araçları getir
+      if (featured === 'true') {
+        query = query.eq('status', 'active').order('price_per_day', { ascending: false }).limit(3);
+      } else {
+        // Sıralama ve sayfalama
+        query = query
+          .order('created_at', { ascending: false })
+          .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      }
       
       // Sorguyu çalıştır
-      const { data, error, count } = await query;
+      const { data, error } = await query;
 
       if (error) {
         console.error('Supabase error:', error);
         return errorResponse(res, 500, 'Database error', error.message);
       }
 
-      return successResponse(res, data);
+      // JSON alanlarını parse et
+      const formattedData = data.map(car => ({
+        ...car,
+        features: safeJsonParse(car.features, []),
+        images: safeJsonParse(car.images, [])
+      }));
+
+      return successResponse(res, formattedData);
     } catch (error) {
       console.error('Error fetching cars:', error);
       return errorResponse(res, 500, 'Failed to fetch cars', error.message);
@@ -55,17 +67,21 @@ export default async function handler(req, res) {
       const carData = req.body;
       
       // Gerekli alanları kontrol et
-      const requiredFields = ['make', 'model', 'year', 'price_per_day'];
+      const requiredFields = ['name', 'make', 'model', 'seats', 'price_per_day'];
       const missingFields = requiredFields.filter(field => !carData[field]);
       
       if (missingFields.length > 0) {
         return errorResponse(res, 400, 'Missing required fields', { missingFields });
       }
       
-      // Zaman damgalarını ekle
-      const now = new Date().toISOString();
-      carData.created_at = now;
-      carData.updated_at = now;
+      // JSON alanlarını string'e çevir
+      if (carData.features && Array.isArray(carData.features)) {
+        carData.features = JSON.stringify(carData.features);
+      }
+      
+      if (carData.images && Array.isArray(carData.images)) {
+        carData.images = JSON.stringify(carData.images);
+      }
       
       // Varsayılan durum ekle
       if (!carData.status) {
@@ -90,81 +106,92 @@ export default async function handler(req, res) {
     }
   }
 
-  // Toplu işlem - birden fazla aracı güncelle veya sil
-  if (req.method === 'PATCH') {
+  // PUT isteği - aracı güncelle
+  if (req.method === 'PUT') {
     try {
-      const { action, car_ids, data: updateData } = req.body;
+      const { id } = req.query;
+      const carData = req.body;
       
-      if (!action || !car_ids || !Array.isArray(car_ids) || car_ids.length === 0) {
-        return errorResponse(res, 400, 'Invalid request. Action and car_ids array are required');
+      if (!id) {
+        return errorResponse(res, 400, 'Car ID is required');
       }
       
-      let result;
-      
-      // Toplu güncelleme
-      if (action === 'update' && updateData) {
-        // Güncelleme zamanını ekle
-        updateData.updated_at = new Date().toISOString();
-        
-        const { data, error } = await supabase
-          .from('cars')
-          .update(updateData)
-          .in('id', car_ids)
-          .select();
-          
-        if (error) {
-          console.error('Supabase error:', error);
-          return errorResponse(res, 500, 'Database error', error.message);
-        }
-        
-        result = { updated: data.length, cars: data };
-      } 
-      // Toplu silme
-      else if (action === 'delete') {
-        // Önce bu araçlarla ilişkili rezervasyonları kontrol et
-        const { data: bookings, error: bookingsError } = await supabase
-          .from('bookings')
-          .select('car_id')
-          .in('car_id', car_ids);
-        
-        if (bookingsError) {
-          console.error('Supabase error checking bookings:', bookingsError);
-          return errorResponse(res, 500, 'Database error', bookingsError.message);
-        }
-        
-        // İlişkili rezervasyonları olan araçları filtrele
-        const carsWithBookings = bookings.map(booking => booking.car_id);
-        const carsToDelete = car_ids.filter(id => !carsWithBookings.includes(id));
-        
-        if (carsToDelete.length === 0) {
-          return errorResponse(res, 409, 'Cannot delete cars with existing bookings', 
-            { carsWithBookings });
-        }
-        
-        const { data, error } = await supabase
-          .from('cars')
-          .delete()
-          .in('id', carsToDelete)
-          .select();
-          
-        if (error) {
-          console.error('Supabase error:', error);
-          return errorResponse(res, 500, 'Database error', error.message);
-        }
-        
-        result = { 
-          deleted: data.length, 
-          skipped: car_ids.length - carsToDelete.length,
-          cars: data 
-        };
-      } else {
-        return errorResponse(res, 400, 'Invalid action. Supported actions: update, delete');
+      // JSON alanlarını string'e çevir
+      if (carData.features && Array.isArray(carData.features)) {
+        carData.features = JSON.stringify(carData.features);
       }
       
-      return successResponse(res, result, `Bulk ${action} completed successfully`);
+      if (carData.images && Array.isArray(carData.images)) {
+        carData.images = JSON.stringify(carData.images);
+      }
+      
+      // Aracı güncelle
+      const { data, error } = await supabase
+        .from('cars')
+        .update(carData)
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return errorResponse(res, 500, 'Database error', error.message);
+      }
+
+      if (data.length === 0) {
+        return errorResponse(res, 404, 'Car not found');
+      }
+
+      return successResponse(res, data[0], 'Car updated successfully');
     } catch (error) {
-      console.error('Error in bulk operation:', error);
-      return errorResponse(res, 500, 'Failed to perform bulk operation', error.message);
+      console.error('Error updating car:', error);
+      return errorResponse(res, 500, 'Failed to update car', error.message);
+    }
+  }
+
+  // DELETE isteği - aracı sil
+  if (req.method === 'DELETE') {
+    try {
+      const { id } = req.query;
+      
+      if (!id) {
+        return errorResponse(res, 400, 'Car ID is required');
+      }
+      
+      // Önce bu araçla ilişkili rezervasyonları kontrol et
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('car_id', id);
+      
+      if (bookingsError) {
+        console.error('Supabase error checking bookings:', bookingsError);
+        return errorResponse(res, 500, 'Database error', bookingsError.message);
+      }
+      
+      if (bookings && bookings.length > 0) {
+        return errorResponse(res, 409, 'Cannot delete car with existing bookings');
+      }
+      
+      // Aracı sil
+      const { data, error } = await supabase
+        .from('cars')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return errorResponse(res, 500, 'Database error', error.message);
+      }
+
+      if (data.length === 0) {
+        return errorResponse(res, 404, 'Car not found');
+      }
+
+      return successResponse(res, data[0], 'Car deleted successfully');
+    } catch (error) {
+      console.error('Error deleting car:', error);
+      return errorResponse(res, 500, 'Failed to delete car', error.message);
     }
   }
 

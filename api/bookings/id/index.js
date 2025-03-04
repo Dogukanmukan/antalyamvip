@@ -21,50 +21,43 @@ export default async function handler(req, res) {
     return errorResponse(res, 400, 'Booking ID is required');
   }
 
-  // GET isteği - belirli bir rezervasyonu getir
+  // GET isteği - rezervasyon detaylarını getir
   if (req.method === 'GET') {
     try {
-      // Rezervasyonu ve ilişkili araç bilgilerini getir
+      // Rezervasyon ve ilişkili araç bilgilerini getir
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
-          car:cars(*)
+          car:cars(id, name, make, model, image, price_per_day)
         `)
         .eq('id', id)
         .single();
 
       if (error) {
         console.error('Supabase error:', error);
-        return errorResponse(res, error.code === 'PGRST116' ? 404 : 500, 
-          error.code === 'PGRST116' ? 'Booking not found' : 'Database error', 
-          error.message);
+        if (error.code === 'PGRST116') {
+          return errorResponse(res, 404, 'Booking not found');
+        }
+        return errorResponse(res, 500, 'Database error', error.message);
       }
 
       return successResponse(res, data);
     } catch (error) {
-      console.error(`Error fetching booking ${id}:`, error);
+      console.error('Error fetching booking:', error);
       return errorResponse(res, 500, 'Failed to fetch booking', error.message);
     }
   }
 
-  // PUT isteği - rezervasyonu güncelle
+  // PUT isteği - rezervasyon güncelle
   if (req.method === 'PUT') {
     try {
-      const updateData = req.body;
-      
-      // Güncelleme verilerini kontrol et
-      if (!updateData || Object.keys(updateData).length === 0) {
-        return errorResponse(res, 400, 'No update data provided');
-      }
-      
-      // Güncelleme zamanını ekle
-      updateData.updated_at = new Date().toISOString();
+      const bookingData = req.body;
       
       // Rezervasyonu güncelle
       const { data, error } = await supabase
         .from('bookings')
-        .update(updateData)
+        .update(bookingData)
         .eq('id', id)
         .select();
 
@@ -73,18 +66,18 @@ export default async function handler(req, res) {
         return errorResponse(res, 500, 'Database error', error.message);
       }
 
-      if (!data || data.length === 0) {
+      if (data.length === 0) {
         return errorResponse(res, 404, 'Booking not found');
       }
 
       return successResponse(res, data[0], 'Booking updated successfully');
     } catch (error) {
-      console.error(`Error updating booking ${id}:`, error);
+      console.error('Error updating booking:', error);
       return errorResponse(res, 500, 'Failed to update booking', error.message);
     }
   }
 
-  // DELETE isteği - rezervasyonu sil
+  // DELETE isteği - rezervasyon sil
   if (req.method === 'DELETE') {
     try {
       // Rezervasyonu sil
@@ -99,56 +92,14 @@ export default async function handler(req, res) {
         return errorResponse(res, 500, 'Database error', error.message);
       }
 
-      if (!data || data.length === 0) {
+      if (data.length === 0) {
         return errorResponse(res, 404, 'Booking not found');
       }
 
-      return successResponse(res, null, 'Booking deleted successfully');
+      return successResponse(res, data[0], 'Booking deleted successfully');
     } catch (error) {
-      console.error(`Error deleting booking ${id}:`, error);
+      console.error('Error deleting booking:', error);
       return errorResponse(res, 500, 'Failed to delete booking', error.message);
-    }
-  }
-
-  // PATCH isteği - rezervasyon durumunu güncelle
-  if (req.method === 'PATCH') {
-    try {
-      const { status } = req.body;
-      
-      // Durum kontrolü
-      if (status === undefined || status === null) {
-        return errorResponse(res, 400, 'Status is required');
-      }
-      
-      // Geçerli durum değerlerini kontrol et
-      const validStatuses = ['pending', 'confirmed', 'cancelled', 'completed'];
-      if (!validStatuses.includes(status)) {
-        return errorResponse(res, 400, 'Invalid status value', { validValues: validStatuses });
-      }
-      
-      // Rezervasyon durumunu güncelle
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select();
-
-      if (error) {
-        console.error('Supabase error:', error);
-        return errorResponse(res, 500, 'Database error', error.message);
-      }
-
-      if (!data || data.length === 0) {
-        return errorResponse(res, 404, 'Booking not found');
-      }
-
-      return successResponse(res, data[0], 'Booking status updated successfully');
-    } catch (error) {
-      console.error(`Error updating booking status ${id}:`, error);
-      return errorResponse(res, 500, 'Failed to update booking status', error.message);
     }
   }
 

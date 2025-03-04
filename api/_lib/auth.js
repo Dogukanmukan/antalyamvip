@@ -2,37 +2,35 @@
 import jwt from 'jsonwebtoken';
 import { errorResponse } from './supabase.js';
 
-/**
- * JWT token'ını doğrulayan middleware
- * @param {Object} req - İstek nesnesi
- * @param {Object} res - Yanıt nesnesi
- * @param {Function} next - Sonraki middleware fonksiyonu
- * @returns {Function|Object} Sonraki middleware veya hata yanıtı
- */
-export function verifyToken(req, res, next) {
-  // Authorization başlığını al
-  const authHeader = req.headers.authorization;
-  
-  // Token kontrolü
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return errorResponse(res, 401, 'No token provided');
-  }
-  
-  // Token'ı ayıkla
-  const token = authHeader.split(' ')[1];
-  
-  // JWT secret kontrolü
+// JWT token doğrulama
+export function verifyToken(token) {
   const jwtSecret = process.env.JWT_SECRET;
+  
   if (!jwtSecret) {
-    console.error('JWT_SECRET is not defined in environment variables');
-    return errorResponse(res, 500, 'Server configuration error');
+    throw new Error('JWT_SECRET is not defined in environment variables');
   }
   
   try {
-    // Token'ı doğrula
     const decoded = jwt.verify(token, jwtSecret);
+    return decoded;
+  } catch (error) {
+    throw new Error(`Token verification failed: ${error.message}`);
+  }
+}
+
+// Middleware: Token doğrulama
+export function authMiddleware(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
     
-    // Kullanıcı bilgilerini istek nesnesine ekle
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return errorResponse(res, 401, 'Authorization header is missing or invalid');
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    
+    // Kullanıcı bilgilerini request nesnesine ekle
     req.user = decoded;
     
     // Sonraki middleware'e geç
@@ -42,35 +40,25 @@ export function verifyToken(req, res, next) {
     
     return true;
   } catch (error) {
-    console.error('Token verification error:', error);
-    
-    if (error.name === 'TokenExpiredError') {
-      return errorResponse(res, 401, 'Token expired');
-    }
-    
-    return errorResponse(res, 401, 'Invalid token');
+    return errorResponse(res, 401, 'Invalid or expired token', error.message);
   }
 }
 
-/**
- * Belirli bir role sahip kullanıcıları kontrol eden middleware
- * @param {string|string[]} roles - İzin verilen roller
- * @returns {Function} Middleware fonksiyonu
- */
+// Middleware: Rol kontrolü
 export function checkRole(roles) {
   return (req, res, next) => {
-    // Önce token doğrulaması yap
-    const tokenResult = verifyToken(req, res);
-    if (tokenResult !== true) {
-      return tokenResult;
+    // Önce token doğrulama
+    const authResult = authMiddleware(req, res, () => true);
+    
+    if (authResult !== true) {
+      return authResult;
     }
     
-    // Rolleri diziye çevir
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    // Rol kontrolü
+    const userRole = req.user.role || 'user';
     
-    // Kullanıcının rolünü kontrol et
-    if (!req.user.role || !allowedRoles.includes(req.user.role)) {
-      return errorResponse(res, 403, 'Access denied: insufficient permissions');
+    if (!roles.includes(userRole)) {
+      return errorResponse(res, 403, 'Access denied. Insufficient permissions');
     }
     
     // Sonraki middleware'e geç
