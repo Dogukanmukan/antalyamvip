@@ -46,6 +46,7 @@ export type Booking = {
   email: string;
   phone: string;
   notes?: string;
+  total_price: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   created_at: string;
   car?: Car;

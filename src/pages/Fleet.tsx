@@ -26,12 +26,34 @@ const Fleet = () => {
           throw new Error('Araçlar yüklenirken bir hata oluştu');
         }
         
-        const data = await response.json();
-        setCars(data);
-        setFilteredCars(data);
+        const responseData = await response.json();
+        
+        // API yanıtının yapısını kontrol et
+        let carsData = [];
+        
+        if (responseData && responseData.data && Array.isArray(responseData.data)) {
+          // Supabase API formatı: { data: [...] }
+          carsData = responseData.data;
+        } else if (Array.isArray(responseData)) {
+          // Doğrudan dizi formatı
+          carsData = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          // Tek bir nesne olabilir, dizi içine al
+          carsData = [responseData];
+        } else {
+          // Hiçbir format uyuşmuyorsa boş dizi kullan
+          carsData = [];
+        }
+        
+        // Veriyi ayarla
+        setCars(carsData);
+        setFilteredCars(carsData);
       } catch (err) {
         console.error('Error fetching cars:', err);
         setError('Araçlar yüklenirken bir hata oluştu.');
+        // Hata durumunda boş diziler kullan
+        setCars([]);
+        setFilteredCars([]);
       } finally {
         setLoading(false);
       }

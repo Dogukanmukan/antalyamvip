@@ -5,29 +5,40 @@ import {
   CheckCircle, XCircle, AlertCircle, MoreHorizontal
 } from 'lucide-react';
 import AdminLayout from '../layouts/AdminLayout';
-import { bookingsAPI } from '../utils/api';
+import api from '../utils/api-compat';
 
 // Rezervasyon arayüzü
 interface Booking {
-  id: number;
-  customer: string;
-  email: string;
-  phone: string;
-  pickup_date: string;
-  pickup_time: string;
+  id: string;
+  trip_type: 'oneWay' | 'roundTrip';
   pickup_location: string;
   dropoff_location: string;
-  car: string;
+  pickup_date: string;
+  return_date?: string;
+  return_pickup_location?: string;
+  return_dropoff_location?: string;
   passengers: number;
-  status: 'completed' | 'pending' | 'cancelled';
-  amount: number;
-  created_at: string;
+  car_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
   notes?: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at?: string;
+  car?: {
+    id: string;
+    name: string;
+    image?: string;
+  };
+  // UI için ek alanlar - bunları opsiyonel yapıyoruz
+  customer?: string;
+  amount?: number;
 }
 
 // Rezervasyon durumu bileşeni
 interface BookingStatusProps {
-  status: 'completed' | 'pending' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   text: string;
 }
 
@@ -96,7 +107,7 @@ const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClos
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Müşteri Bilgileri</p>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">{booking.customer}</p>
+                      <p className="mt-1 text-sm text-gray-900 dark:text-white">{booking.full_name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{booking.email}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{booking.phone}</p>
                     </div>
@@ -125,12 +136,12 @@ const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClos
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Tarih & Saat</p>
                         <p className="text-sm text-gray-900 dark:text-white">
-                          {booking.pickup_date} - {booking.pickup_time}
+                          {booking.pickup_date}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Araç</p>
-                        <p className="text-sm text-gray-900 dark:text-white">{booking.car}</p>
+                        <p className="text-sm text-gray-900 dark:text-white">{booking.car?.name || `Car ID: ${booking.car_id}`}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Alış Noktası</p>
@@ -194,9 +205,36 @@ const Bookings: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   
   const bookingsPerPage = 10;
+  
+  // Arama işlemi
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const searchTerm = e.target.value.toLowerCase();
+    setSearchTerm(searchTerm);
+    
+    let result = [...bookings];
+    
+    // Durum filtresini uygula
+    if (statusFilter !== 'all') {
+      result = result.filter(booking => booking.status === statusFilter);
+    }
+    
+    // Arama terimini uygula
+    if (searchTerm) {
+      result = result.filter(booking => 
+        (booking.full_name?.toLowerCase().includes(searchTerm)) ||
+        (booking.email?.toLowerCase().includes(searchTerm)) ||
+        (booking.phone?.includes(searchTerm)) ||
+        (booking.pickup_location?.toLowerCase().includes(searchTerm)) ||
+        (booking.dropoff_location?.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    setFilteredBookings(result);
+    setCurrentPage(1);
+  };
   
   // API'den verileri yükle
   useEffect(() => {
@@ -205,35 +243,32 @@ const Bookings: React.FC = () => {
       setError(null);
       
       try {
-        const data = await bookingsAPI.getAll();
+        const data = await api.bookings.getAll();
         // API yanıtının dizi olup olmadığını kontrol et
         const bookingsArray = Array.isArray(data) ? data : [];
-        setBookings(bookingsArray);
-        setFilteredBookings(bookingsArray);
+        
+        // Verileri işle ve görüntüleme için hazırla
+        const processedBookings = bookingsArray.map(booking => {
+          // Tarih ve saat bilgilerini ayır
+          const pickupDate = new Date(booking.pickup_date);
+          const formattedPickupDate = pickupDate.toLocaleDateString();
+          
+          // Orijinal rezervasyon nesnesini döndür, UI için ek alanları ekle
+          return {
+            ...booking,
+            customer: booking.full_name,
+            // Fiyat bilgisini amount alanına ekle (UI için)
+            amount: booking.total_price || 0
+          };
+        });
+        
+        setBookings(processedBookings);
+        setFilteredBookings(processedBookings);
       } catch (err) {
         console.error('Rezervasyonları yüklerken hata:', err);
         setError('Rezervasyonlar yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
-        
-        // Geçici olarak, API entegrasyonu tamamlanana kadar örnek veriler
-        const dummyBookings: Booking[] = Array.from({ length: 25 }, (_, i) => ({
-          id: i + 1,
-          customer: `Müşteri ${i + 1}`,
-          email: `musteri${i + 1}@example.com`,
-          phone: `+90 555 123 ${(i + 1).toString().padStart(4, '0')}`,
-          pickup_date: `0${Math.floor(i / 7) + 1}.03.2025`,
-          pickup_time: `${Math.floor(Math.random() * 24).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-          pickup_location: ['Antalya Havalimanı', 'Alanya Merkez', 'Manavgat', 'Side', 'Belek'][Math.floor(Math.random() * 5)],
-          dropoff_location: ['Alanya Merkez', 'Antalya Havalimanı', 'Manavgat', 'Side', 'Belek'][Math.floor(Math.random() * 5)],
-          car: ['Mercedes Vito VIP', 'Mercedes Sprinter', 'Mercedes V-Class'][Math.floor(Math.random() * 3)],
-          passengers: Math.floor(Math.random() * 8) + 1,
-          status: ['completed', 'pending', 'cancelled'][Math.floor(Math.random() * 3)] as 'completed' | 'pending' | 'cancelled',
-          amount: Math.floor(Math.random() * 2000) + 500,
-          created_at: `0${Math.floor(i / 10) + 1}.03.2025`,
-          notes: Math.random() > 0.7 ? 'Müşteri özel not ekledi.' : undefined
-        }));
-        
-        setBookings(dummyBookings);
-        setFilteredBookings(dummyBookings);
+        setBookings([]);
+        setFilteredBookings([]);
       } finally {
         setIsLoading(false);
       }
@@ -241,30 +276,6 @@ const Bookings: React.FC = () => {
     
     fetchBookings();
   }, []);
-  
-  // Arama ve filtreleme
-  useEffect(() => {
-    let result = bookings;
-    
-    // Arama terimini uygula
-    if (searchTerm) {
-      result = result.filter(booking => 
-        booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.phone.includes(searchTerm) ||
-        booking.pickup_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.dropoff_location.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Durum filtresini uygula
-    if (statusFilter !== 'all') {
-      result = result.filter(booking => booking.status === statusFilter);
-    }
-    
-    setFilteredBookings(result);
-    setCurrentPage(1); // Filtreleme yapıldığında ilk sayfaya dön
-  }, [searchTerm, statusFilter, bookings]);
   
   // Sayfalama
   const indexOfLastBooking = currentPage * bookingsPerPage;
@@ -276,36 +287,44 @@ const Bookings: React.FC = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   
   // Rezervasyon durumunu güncelle
-  const updateBookingStatus = async (id: number, status: string) => {
+  const updateBookingStatus = async (id: string, status: string) => {
     try {
-      await bookingsAPI.updateStatus(id, status);
+      await api.bookings.updateStatus(id, status);
       
-      // Başarılı güncelleme sonrası state'i güncelle
+      // Başarılı olursa, yerel durumu güncelle
       setBookings(prevBookings => 
         prevBookings.map(booking => 
           booking.id === id 
-            ? { ...booking, status: status as 'completed' | 'pending' | 'cancelled' } 
+            ? { ...booking, status: status as 'pending' | 'confirmed' | 'completed' | 'cancelled' } 
             : booking
         )
       );
       
-      // Seçili rezervasyon varsa onu da güncelle
+      setFilteredBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === id 
+            ? { ...booking, status: status as 'pending' | 'confirmed' | 'completed' | 'cancelled' } 
+            : booking
+        )
+      );
+      
+      // Eğer detay modalı açıksa, oradaki durumu da güncelle
       if (selectedBooking && selectedBooking.id === id) {
         setSelectedBooking({
           ...selectedBooking,
-          status: status as 'completed' | 'pending' | 'cancelled'
+          status: status as 'pending' | 'confirmed' | 'completed' | 'cancelled'
         });
       }
       
-      alert(`Rezervasyon durumu başarıyla güncellendi: ${status}`);
-    } catch (err) {
-      console.error('Rezervasyon durumu güncellenirken hata:', err);
+      alert('Rezervasyon durumu başarıyla güncellendi.');
+    } catch (error) {
+      console.error('Rezervasyon durumu güncellenirken hata:', error);
       alert('Rezervasyon durumu güncellenirken bir hata oluştu.');
     }
   };
   
   // Rezervasyon sil
-  const deleteBooking = async (id: number) => {
+  const deleteBooking = async (id: string) => {
     if (!window.confirm('Bu rezervasyonu silmek istediğinizden emin misiniz?')) {
       return;
     }
@@ -314,19 +333,15 @@ const Bookings: React.FC = () => {
     setDeleteId(id);
     
     try {
-      await bookingsAPI.delete(id);
+      await api.bookings.delete(id);
       
-      // Başarılı silme sonrası state'i güncelle
+      // Başarılı olursa, yerel durumu güncelle
       setBookings(prevBookings => prevBookings.filter(booking => booking.id !== id));
-      
-      // Seçili rezervasyon silinmişse modalı kapat
-      if (selectedBooking && selectedBooking.id === id) {
-        setSelectedBooking(null);
-      }
+      setFilteredBookings(prevBookings => prevBookings.filter(booking => booking.id !== id));
       
       alert('Rezervasyon başarıyla silindi.');
-    } catch (err) {
-      console.error('Rezervasyon silinirken hata:', err);
+    } catch (error) {
+      console.error('Rezervasyon silinirken hata:', error);
       alert('Rezervasyon silinirken bir hata oluştu.');
     } finally {
       setIsDeleting(false);
@@ -394,7 +409,7 @@ const Bookings: React.FC = () => {
                 type="text"
                 placeholder="Müşteri, e-posta veya konum ara..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearch}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -429,7 +444,7 @@ const Bookings: React.FC = () => {
                     b.email,
                     b.phone,
                     b.pickup_date,
-                    b.pickup_time,
+                    b.pickup_date,
                     b.pickup_location,
                     b.dropoff_location,
                     b.car,
@@ -493,10 +508,10 @@ const Bookings: React.FC = () => {
               {currentBookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    #{booking.id}
+                    #{booking.id.toString().substring(0, 8)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.customer}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.customer || booking.full_name}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{booking.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -504,17 +519,13 @@ const Bookings: React.FC = () => {
                       <Calendar size={14} className="mr-1 text-gray-400" />
                       <span className="text-sm text-gray-500 dark:text-gray-400">{booking.pickup_date}</span>
                     </div>
-                    <div className="flex items-center mt-1">
-                      <Clock size={14} className="mr-1 text-gray-400" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{booking.pickup_time}</span>
-                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 dark:text-white">{booking.pickup_location}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{booking.dropoff_location}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {booking.car}
+                    {typeof booking.car === 'string' ? booking.car : (booking.car?.name || `Car ID: ${booking.car_id}`)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <BookingStatus 

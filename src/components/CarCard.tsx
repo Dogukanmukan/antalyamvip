@@ -14,21 +14,31 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // Güvenli erişim için yardımcı fonksiyonlar
+  const safeImages = Array.isArray(car.images) ? car.images : [];
+  const safeImageUrl = safeImages.length > 0 ? safeImages[currentImageIndex] : (car.image || '/images/placeholder.jpg');
+  
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % car.images.length);
+    if (safeImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % safeImages.length);
+    }
   };
   
   const prevImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + car.images.length) % car.images.length);
+    if (safeImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length);
+    }
   };
   
   const openModal = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsModalOpen(true);
+    if (safeImages.length > 0) {
+      setIsModalOpen(true);
+    }
   };
   
   return (
@@ -36,13 +46,16 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
       <div className="bg-white rounded-lg overflow-hidden shadow-md border border-gray-100 hover:shadow-lg transition duration-300">
         <div className="relative">
           <img 
-            src={car.images[currentImageIndex]} 
-            alt={car.name} 
+            src={safeImageUrl} 
+            alt={car.name || 'Car'} 
             className="w-full h-56 object-cover cursor-pointer"
             onClick={openModal}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/images/placeholder.jpg';
+            }}
           />
           
-          {car.images.length > 1 && (
+          {safeImages.length > 1 && (
             <>
               <button 
                 onClick={prevImage}
@@ -57,31 +70,31 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
                 <ChevronRight size={20} />
               </button>
               <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                {currentImageIndex + 1} / {car.images.length}
+                {currentImageIndex + 1} / {safeImages.length}
               </div>
             </>
           )}
           
           <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">
-            {car.category}
+            {car.category || 'Standard'}
           </div>
         </div>
         
         <div className="p-6">
-          <h3 className="text-xl font-bold mb-2">{car.name}</h3>
+          <h3 className="text-xl font-bold mb-2">{car.name || 'Unnamed Car'}</h3>
           
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="flex items-center text-gray-600">
               <Calendar size={16} className="mr-2 text-amber-500" />
-              <span className="text-sm">{car.year}</span>
+              <span className="text-sm">{car.year || '-'}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <Fuel size={16} className="mr-2 text-amber-500" />
-              <span className="text-sm">{car.fuel_type}</span>
+              <span className="text-sm">{car.fuel_type || '-'}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <Users size={16} className="mr-2 text-amber-500" />
-              <span className="text-sm">{car.seats} {t('common.seats')}</span>
+              <span className="text-sm">{car.seats || '-'} {t('common.seats')}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <Clock size={16} className="mr-2 text-amber-500" />
@@ -92,7 +105,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
           <div className="border-t border-gray-100 pt-4 mt-4">
             <div className="flex justify-between items-center">
               <div>
-                {car.price_per_day && (
+                {car.price_per_day !== undefined && (
                   <div className="text-amber-500 font-bold">
                     {car.price_per_day} ₺ <span className="text-gray-500 text-sm font-normal">/ {t('common.day')}</span>
                   </div>
@@ -109,13 +122,13 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
         </div>
       </div>
       
-      {isModalOpen && (
+      {isModalOpen && safeImages.length > 0 && (
         <ImageModal 
-          images={car.images} 
+          images={safeImages} 
           currentIndex={currentImageIndex}
           onClose={() => setIsModalOpen(false)}
-          onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + car.images.length) % car.images.length)}
-          onNext={() => setCurrentImageIndex((prev) => (prev + 1) % car.images.length)}
+          onPrev={() => setCurrentImageIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length)}
+          onNext={() => setCurrentImageIndex((prev) => (prev + 1) % safeImages.length)}
           isOpen={isModalOpen}
         />
       )}
