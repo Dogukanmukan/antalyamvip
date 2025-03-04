@@ -204,14 +204,61 @@ class ApiClient {
     formData.append('file', file);
     formData.append('folder', folder);
     
-    return this.request({
-      method: 'POST',
-      url: '/upload',
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Token'ı manuel olarak alıp headers'a ekleyelim
+    const token = localStorage.getItem('adminToken');
+    
+    console.log('Uploading file to API:', { fileName: file.name, fileSize: file.size, folder });
+    console.log('Authentication token present:', token ? 'Yes' : 'No');
+    
+    if (!token) {
+      console.error('No authentication token found');
+      throw new Error('Oturum açılmamış. Lütfen tekrar giriş yapın.');
+    }
+    
+    try {
+      const response = await this.client({
+        method: 'POST',
+        url: '/upload',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      
+      console.log('File upload response:', response.status, response.statusText);
+      
+      if (response.data && response.data.success && response.data.data) {
+        console.log('File upload successful:', response.data.data.url);
+        return {
+          url: response.data.data.url,
+          path: response.data.data.path
+        };
+      } else {
+        console.error('Invalid response format:', response.data);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      
+      // Axios hata yanıtını kontrol et
+      if (error.response) {
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+        
+        // 401 hatası için özel mesaj
+        if (error.response.status === 401) {
+          throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        }
+        
+        // Sunucu hata mesajını kullan
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Dosya yüklenirken bir hata oluştu';
+        throw new Error(errorMessage);
+      }
+      
+      // Diğer hatalar
+      throw error;
+    }
   }
   
   // Veritabanı başlatma işlemi (sadece admin)

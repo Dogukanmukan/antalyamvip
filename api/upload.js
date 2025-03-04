@@ -5,12 +5,30 @@ import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 // formidable'ın body-parser ile çakışmasını önlemek için
 export const config = {
   api: {
     bodyParser: false,
   },
+};
+
+// JWT token doğrulama fonksiyonu
+const validateToken = (token) => {
+  try {
+    const jwtSecret = process.env.JWT_SECRET || '/Of6UT0971EdZSnVm3rsD+JnHVoS4FflV1zgBH5rDClQChwkbs4UiS1gWYp++cXQ0DWVSvbzFWhCJ+ZocuiQfg==';
+    
+    console.log('JWT Secret length:', jwtSecret.length);
+    console.log('Token length:', token.length);
+    
+    const decoded = jwt.verify(token, jwtSecret);
+    console.log('Token decoded successfully:', decoded);
+    return { valid: true, user: decoded };
+  } catch (error) {
+    console.error('Token validation error:', error.message);
+    return { valid: false, error: error.message };
+  }
 };
 
 export default async function handler(req, res) {
@@ -31,9 +49,33 @@ export default async function handler(req, res) {
   }
 
   // Kimlik doğrulama
-  const authResult = authMiddleware(req, res, () => true);
-  if (authResult !== true) {
-    return authResult;
+  try {
+    console.log('Authorization header:', req.headers.authorization);
+    
+    // Authorization header'ı kontrol et
+    if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header');
+      return errorResponse(res, 401, 'Missing or invalid Authorization header');
+    }
+    
+    // Token'ı çıkar
+    const token = req.headers.authorization.split(' ')[1];
+    
+    // Token'ı doğrula
+    const validation = validateToken(token);
+    
+    if (!validation.valid) {
+      console.error('Invalid token:', validation.error);
+      return errorResponse(res, 401, 'Invalid token', validation.error);
+    }
+    
+    // Kullanıcı bilgilerini req nesnesine ekle
+    req.user = validation.user;
+    
+    console.log('Authentication successful, proceeding with file upload');
+  } catch (authError) {
+    console.error('Authentication error:', authError);
+    return errorResponse(res, 401, 'Authentication failed', authError.message);
   }
 
   try {

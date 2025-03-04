@@ -154,7 +154,26 @@ const CarForm: React.FC<CarFormProps> = ({
       reader.readAsDataURL(file);
       
       try {
-        // Dosyayı Supabase storage'a yükle
+        console.log('Resim yükleme başlatılıyor:', file.name);
+        
+        // Kullanıcının oturum açtığını kontrol et
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+          console.error('Oturum açılmamış, resim yüklenemez');
+          setErrors(prev => ({
+            ...prev,
+            image: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
+          }));
+          
+          // Kullanıcıyı login sayfasına yönlendir
+          setTimeout(() => {
+            window.location.href = '/admin/login';
+          }, 2000);
+          
+          return;
+        }
+        
+        // Dosyayı yükle
         const result = await api.files.uploadFile(file, 'car-images');
         
         console.log('Dosya yükleme başarılı:', result);
@@ -172,11 +191,27 @@ const CarForm: React.FC<CarFormProps> = ({
             image: ''
           }));
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Dosya yükleme hatası:', error);
+        
+        // Hata mesajını göster
+        let errorMessage = 'Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
+        
+        // Eğer 401 hatası ise oturum hatası mesajı göster
+        if (error.response && error.response.status === 401) {
+          errorMessage = 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.';
+          
+          // Kullanıcıyı login sayfasına yönlendir
+          setTimeout(() => {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = '/admin/login';
+          }, 2000);
+        }
+        
         setErrors(prev => ({
           ...prev,
-          image: 'Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.'
+          image: errorMessage
         }));
       }
     }
