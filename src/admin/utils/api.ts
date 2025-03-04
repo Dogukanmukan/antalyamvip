@@ -49,15 +49,26 @@ export const authAPI = {
       console.log('API isteği gönderiliyor:', `${API_BASE_URL}/auth/login`);
       const response = await apiClient.post('/auth/login', { email, password });
       console.log('API yanıtı alındı:', response.status, response.statusText);
+      console.log('API yanıt içeriği:', response.data);
       
-      if (!response.data || !response.data.success) {
-        console.error('API yanıtı başarısız:', response.data);
-        throw new Error(response.data?.error || 'Giriş başarısız');
+      // API yanıtını kontrol et
+      if (!response.data) {
+        throw new Error('API yanıtı boş');
+      }
+      
+      // API yanıtı başarılı mı kontrol et
+      if (response.data.success === false) {
+        throw new Error(response.data.error || 'Giriş başarısız');
       }
       
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login API hatası:', error);
+      // Axios hata yanıtını kontrol et
+      if (error.response) {
+        console.error('API hata yanıtı:', error.response.data);
+        throw new Error(error.response.data?.error || error.response.data?.message || error.message);
+      }
       throw error;
     }
   },

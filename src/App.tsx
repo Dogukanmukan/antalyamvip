@@ -17,6 +17,7 @@ import AdminDashboard from './admin/pages/Dashboard';
 import AdminBookings from './admin/pages/Bookings';
 import AdminCars from './admin/pages/Cars';
 import AdminSettings from './admin/pages/Settings';
+import ProtectedRoute from './admin/components/ProtectedRoute';
 
 // Layout bileşenleri
 interface MainLayoutProps {
@@ -67,12 +68,48 @@ function App() {
         
         {/* Admin rotaları */}
         <Route path="/admin/login" element={<AdminWrapper><AdminLogin /></AdminWrapper>} />
-        <Route path="/admin/dashboard" element={<AdminWrapper><AdminDashboard /></AdminWrapper>} />
-        <Route path="/admin/bookings" element={<AdminWrapper><AdminBookings /></AdminWrapper>} />
-        <Route path="/admin/cars" element={<AdminWrapper><AdminCars /></AdminWrapper>} />
-        <Route path="/admin/cars/add" element={<AdminWrapper><AdminCars isAddMode={true} /></AdminWrapper>} />
-        <Route path="/admin/cars/edit/:id" element={<AdminWrapper><AdminCars isEditMode={true} /></AdminWrapper>} />
-        <Route path="/admin/settings" element={<AdminWrapper><AdminSettings /></AdminWrapper>} />
+        <Route path="/admin/dashboard" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
+        <Route path="/admin/bookings" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminBookings />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
+        <Route path="/admin/cars" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminCars />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
+        <Route path="/admin/cars/add" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminCars isAddMode={true} />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
+        <Route path="/admin/cars/edit/:id" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminCars isEditMode={true} />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
+        <Route path="/admin/settings" element={
+          <AdminWrapper>
+            <ProtectedRoute>
+              <AdminSettings />
+            </ProtectedRoute>
+          </AdminWrapper>
+        } />
       </Routes>
     </Router>
   );
