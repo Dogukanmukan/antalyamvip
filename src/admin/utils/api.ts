@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getRuntimeConfig } from '../../lib/config';
+import { supabase } from '../../lib/supabaseClient';
 
 // API temel URL'si
 const API_BASE_URL = getRuntimeConfig('API_BASE_URL');
@@ -46,57 +47,42 @@ apiClient.interceptors.response.use(
 export const authAPI = {
   login: async (email: string, password: string) => {
     try {
-      // Doğru login URL'sini oluştur
-      const loginUrl = '/api/auth/login';
-      
-      console.log('API: Sending login request to', loginUrl);
+      console.log('API: Attempting login with Supabase Auth');
       console.log('API: Request payload:', { email, password: '******' });
       
-      const response = await axios.post(loginUrl, {
+      // Supabase Auth ile giriş yap
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
       
-      console.log('API: Login response status:', response.status);
-      console.log('API: Login response headers:', response.headers);
-      
-      // Yanıt verilerini kontrol et
-      if (!response.data) {
-        console.error('API: Empty response data');
-        throw new Error('Sunucudan boş yanıt alındı');
+      if (error) {
+        console.error('API: Supabase auth error:', error);
+        throw new Error(error.message || 'Giriş başarısız');
       }
       
-      console.log('API: Login response data structure:', Object.keys(response.data));
-      
-      // Başarı durumunu kontrol et
-      if (response.data.error) {
-        console.error('API: Error in response data:', response.data.error);
-        throw new Error(response.data.error || 'Giriş başarısız');
+      if (!data.session || !data.user) {
+        console.error('API: Invalid auth response:', data);
+        throw new Error('Geçersiz kimlik doğrulama yanıtı');
       }
       
-      // Token ve kullanıcı verilerini kontrol et
-      if (!response.data.token || !response.data.user) {
-        console.error('API: Missing token or user data in response:', response.data);
-        throw new Error('Sunucudan geçersiz yanıt alındı: Token veya kullanıcı bilgisi eksik');
-      }
+      console.log('API: Login successful');
       
-      console.log('API: Login successful, returning response data');
-      return response.data;
+      // Kullanıcı rolünü kontrol et
+      const userRole = data.user.app_metadata?.role || 'user';
+      
+      // Token ve kullanıcı bilgilerini döndür
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          role: userRole
+        },
+        token: data.session.access_token
+      };
     } catch (error: any) {
       console.error('API: Login request failed:', error);
-      
-      // Axios hata yanıtını kontrol et
-      if (error.response) {
-        console.error('API: Error response status:', error.response.status);
-        console.error('API: Error response data:', error.response.data);
-        
-        // Sunucu hata mesajını kullan
-        const errorMessage = error.response.data?.message || error.response.data?.error || 'Giriş başarısız';
-        throw new Error(errorMessage);
-      }
-      
-      // Ağ hatası veya diğer hatalar
-      throw new Error(error.message || 'Sunucuya bağlanılamadı');
+      throw new Error(error.message || 'Giriş başarısız');
     }
   },
   
