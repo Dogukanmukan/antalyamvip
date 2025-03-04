@@ -1,6 +1,6 @@
 // Vercel serverless function for fetching cars
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -17,7 +17,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('API Request received to /api/cars');
   console.log('Request method:', req.method);
 
@@ -82,8 +82,8 @@ async function getCars(req, res) {
     // Process arrays for response
     const processedData = data.map(car => ({
       ...car,
-      images: typeof car.images === 'string' ? JSON.parse(car.images) : car.images || [],
-      features: typeof car.features === 'string' ? JSON.parse(car.features) : car.features || []
+      images: processJsonField(car.images),
+      features: processJsonField(car.features)
     }));
     
     return res.status(200).json(processedData);
@@ -153,8 +153,8 @@ async function createCar(req, res) {
     // Process arrays for response
     const processedResponse = {
       ...data[0],
-      images: typeof data[0].images === 'string' ? JSON.parse(data[0].images) : data[0].images || [],
-      features: typeof data[0].features === 'string' ? JSON.parse(data[0].features) : data[0].features || []
+      images: processJsonField(data[0].images),
+      features: processJsonField(data[0].features)
     };
     
     return res.status(201).json({
@@ -170,5 +170,20 @@ async function createCar(req, res) {
       supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
       supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
     });
+  }
+}
+
+// Helper function to process JSON fields
+function processJsonField(field) {
+  if (!field) return [];
+  
+  try {
+    if (typeof field === 'string') {
+      return JSON.parse(field);
+    }
+    return field;
+  } catch (error) {
+    console.error('Error parsing JSON field:', error);
+    return [];
   }
 }
