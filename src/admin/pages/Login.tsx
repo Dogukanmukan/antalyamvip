@@ -75,7 +75,9 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Form doğrulamasını yap
     if (!validateForm()) {
+      console.error('Form validation failed');
       return;
     }
     
@@ -83,35 +85,41 @@ const Login: React.FC = () => {
     setError('');
     
     try {
-      console.log('Giriş yapılıyor:', email);
+      console.log('Attempting login with:', { email });
       const response = await authAPI.login(email, password);
-      console.log('Giriş başarılı, yanıt:', response);
+      console.log('Login API response:', response);
       
       // API yanıtını kontrol et
       if (!response) {
-        throw new Error('Sunucudan yanıt alınamadı');
+        throw new Error('API response is empty');
       }
       
-      // API yanıtı farklı formatlarda olabilir, her iki durumu da kontrol et
-      const token = response.token || response.data?.token;
-      const user = response.user || response.data?.user;
-      
-      if (!token) {
-        throw new Error('Token alınamadı');
+      if (!response.token || !response.user) {
+        console.error('Invalid API response format:', response);
+        throw new Error('Invalid response format from server');
       }
       
-      // Store token and user info
-      localStorage.setItem('adminToken', token);
-      localStorage.setItem('adminUser', JSON.stringify(user || {}));
+      // Token ve kullanıcı bilgilerini kaydet
+      console.log('Storing authentication data...');
+      localStorage.setItem('adminToken', response.token);
+      localStorage.setItem('adminUser', JSON.stringify(response.user));
       
-      console.log('Token ve kullanıcı bilgileri kaydedildi, yönlendiriliyor...');
+      console.log('Login successful, redirecting to dashboard...');
       
-      // Doğrudan window.location ile yönlendir (en güvenilir yöntem)
-      window.location.href = '/admin/dashboard';
-      
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+      // Yönlendirme işlemi - önce navigate ile dene
+      try {
+        navigate('/admin/dashboard');
+        console.log('Navigation with React Router successful');
+      } catch (navError) {
+        console.error('Navigation with React Router failed:', navError);
+        
+        // React Router başarısız olursa window.location ile dene
+        console.log('Trying with window.location.href...');
+        window.location.href = '/admin/dashboard';
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
     } finally {
       setLoading(false);
     }

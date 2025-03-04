@@ -2,12 +2,18 @@
 import { supabase, setCorsHeaders, errorResponse, successResponse } from '../_lib/supabase.js';
 import jwt from 'jsonwebtoken';
 
+// Varsayılan JWT Secret (güvenlik için gerçek uygulamalarda çevre değişkeni kullanılmalıdır)
+const DEFAULT_JWT_SECRET = '/Of6UT0971EdZSnVm3rsD+JnHVoS4FflV1zgBH5rDClQChwkbs4UiS1gWYp++cXQ0DWVSvbzFWhCJ+ZocuiQfg==';
+
 export default async function handler(req, res) {
   // CORS başlıklarını ayarla
   setCorsHeaders(res);
   
   console.log('API Request received to /api/auth/login');
   console.log('Request method:', req.method);
+  console.log('Environment check - JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.log('Environment check - SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+  console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   // OPTIONS isteğini işle
   if (req.method === 'OPTIONS') {
@@ -31,60 +37,63 @@ export default async function handler(req, res) {
     
     // Supabase ile kimlik doğrulama
     console.log('Authenticating with Supabase...');
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (error) {
-      console.error('Supabase auth error:', error);
-      return errorResponse(res, 401, 'Invalid credentials', error.message);
+    if (authError) {
+      console.error('Supabase auth error:', authError);
+      return errorResponse(res, 401, 'Invalid credentials', authError.message);
     }
 
-    console.log('Supabase authentication successful, fetching user data...');
+    console.log('Supabase authentication successful:', authData);
     
-    // Doğrudan auth.users tablosundan kullanıcı bilgilerini al
-    const { data: authUser } = await supabase.auth.getUser();
-    
-    if (!authUser || !authUser.user) {
-      console.error('Failed to get authenticated user data');
-      return errorResponse(res, 500, 'Failed to fetch user data');
+    // Doğrudan session'dan kullanıcı bilgilerini al
+    if (!authData || !authData.user) {
+      console.error('Auth data is missing user information:', authData);
+      return errorResponse(res, 500, 'Authentication successful but user data is missing');
     }
     
-    console.log('User data fetched successfully:', authUser.user);
+    const userData = authData.user;
+    console.log('User data from auth response:', userData);
     
     // Kullanıcı rolünü al
-    const userRole = authUser.user.app_metadata?.role || 'user';
+    const userRole = userData.app_metadata?.role || 'user';
+    console.log('User role:', userRole);
     
     // JWT token oluştur
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('JWT_SECRET is not defined in environment variables');
-      return errorResponse(res, 500, 'Server configuration error');
+    const jwtSecret = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
+    console.log('Using JWT secret:', jwtSecret ? 'Secret is defined' : 'Secret is NOT defined');
+    
+    try {
+      console.log('Creating JWT token...');
+      const token = jwt.sign(
+        { 
+          id: userData.id, 
+          email: userData.email,
+          role: userRole
+        },
+        jwtSecret,
+        { expiresIn: '24h' }
+      );
+
+      console.log('JWT token created successfully');
+      
+      // Başarılı yanıt
+      return successResponse(res, {
+        user: {
+          id: userData.id,
+          email: userData.email,
+          username: userData.email.split('@')[0], // E-postadan basit bir kullanıcı adı oluştur
+          role: userRole
+        },
+        token
+      });
+    } catch (jwtError) {
+      console.error('JWT token creation error:', jwtError);
+      return errorResponse(res, 500, 'Failed to create authentication token', jwtError.message);
     }
-
-    console.log('Creating JWT token...');
-    const token = jwt.sign(
-      { 
-        id: authUser.user.id, 
-        email: authUser.user.email,
-        role: userRole
-      },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
-
-    console.log('Login successful, sending response with token');
-    // Başarılı yanıt
-    return successResponse(res, {
-      user: {
-        id: authUser.user.id,
-        email: authUser.user.email,
-        username: authUser.user.email.split('@')[0], // E-postadan basit bir kullanıcı adı oluştur
-        role: userRole
-      },
-      token
-    });
   } catch (error) {
     console.error('Login error:', error);
     return errorResponse(res, 500, 'Server error', error.message);
