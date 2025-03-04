@@ -83,14 +83,30 @@ const Login: React.FC = () => {
     setError('');
     
     try {
+      console.log('Giriş yapılıyor:', email);
       const response = await authAPI.login(email, password);
+      console.log('Giriş başarılı, yanıt:', response);
+      
+      if (!response || !response.token) {
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
       
       // Store token and user info
       localStorage.setItem('adminToken', response.token);
       localStorage.setItem('adminUser', JSON.stringify(response.user));
       
-      // Redirect to dashboard
+      console.log('Token ve kullanıcı bilgileri kaydedildi, yönlendiriliyor...');
+      
+      // Redirect to dashboard - iki farklı yöntem deniyoruz
       navigate('/admin/dashboard');
+      
+      // Eğer navigate çalışmazsa, doğrudan window.location ile yönlendir
+      setTimeout(() => {
+        if (window.location.pathname !== '/admin/dashboard') {
+          console.log('Navigate çalışmadı, window.location kullanılıyor');
+          window.location.href = '/admin/dashboard';
+        }
+      }, 500);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');

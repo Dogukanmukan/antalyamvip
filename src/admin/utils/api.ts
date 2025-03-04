@@ -46,9 +46,18 @@ apiClient.interceptors.response.use(
 export const authAPI = {
   login: async (email: string, password: string) => {
     try {
+      console.log('API isteği gönderiliyor:', `${API_BASE_URL}/auth/login`);
       const response = await apiClient.post('/auth/login', { email, password });
+      console.log('API yanıtı alındı:', response.status, response.statusText);
+      
+      if (!response.data || !response.data.success) {
+        console.error('API yanıtı başarısız:', response.data);
+        throw new Error(response.data?.error || 'Giriş başarısız');
+      }
+      
       return response.data;
     } catch (error) {
+      console.error('Login API hatası:', error);
       throw error;
     }
   },

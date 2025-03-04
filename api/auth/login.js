@@ -22,12 +22,15 @@ export default async function handler(req, res) {
   try {
     const { email, password } = req.body;
     
+    console.log('Login attempt for email:', email);
+    
     // Gerekli alanları kontrol et
     if (!email || !password) {
       return errorResponse(res, 400, 'Email and password are required');
     }
     
     // Supabase ile kimlik doğrulama
+    console.log('Authenticating with Supabase...');
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -38,6 +41,8 @@ export default async function handler(req, res) {
       return errorResponse(res, 401, 'Invalid credentials', error.message);
     }
 
+    console.log('Supabase authentication successful, fetching user data...');
+    
     // Kullanıcı bilgilerini al
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -50,6 +55,8 @@ export default async function handler(req, res) {
       return errorResponse(res, 500, 'Failed to fetch user data', userError.message);
     }
 
+    console.log('User data fetched successfully:', userData);
+
     // JWT token oluştur
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -57,6 +64,7 @@ export default async function handler(req, res) {
       return errorResponse(res, 500, 'Server configuration error');
     }
 
+    console.log('Creating JWT token...');
     const token = jwt.sign(
       { 
         id: userData.id, 
@@ -67,6 +75,7 @@ export default async function handler(req, res) {
       { expiresIn: '24h' }
     );
 
+    console.log('Login successful, sending response with token');
     // Başarılı yanıt
     return successResponse(res, {
       user: {
