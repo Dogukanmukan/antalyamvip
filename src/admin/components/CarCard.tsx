@@ -9,6 +9,16 @@ interface CarCardProps {
 }
 
 const CarCard: React.FC<CarCardProps> = ({ car, onEdit, onDelete, onView }) => {
+  // Debug: Araç verilerini konsola yazdır
+  console.log('CarCard - car data:', {
+    id: car.id,
+    name: car.name,
+    image: car.image,
+    images: car.images,
+    imagesType: car.images ? typeof car.images : 'undefined',
+    imagesIsArray: car.images ? Array.isArray(car.images) : false
+  });
+
   // Araç durumuna göre renk ve metin belirleme
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

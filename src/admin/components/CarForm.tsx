@@ -39,6 +39,15 @@ const CarForm: React.FC<CarFormProps> = ({
   // Form ilk yüklendiğinde veya initialData değiştiğinde formu doldur
   useEffect(() => {
     if (initialData) {
+      console.log('CarForm - initialData:', {
+        id: initialData.id,
+        name: initialData.name,
+        image: initialData.image,
+        images: initialData.images,
+        imagesType: initialData.images ? typeof initialData.images : 'undefined',
+        imagesIsArray: initialData.images ? Array.isArray(initialData.images) : false
+      });
+      
       setFormData({
         name: initialData.name || '',
         make: initialData.make || '',
