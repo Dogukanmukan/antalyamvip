@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  Search, Filter, Plus, Edit, Trash2, 
-  MoreHorizontal, Eye, ChevronLeft, ChevronRight, AlertCircle, Car
+  Search, Plus, ChevronLeft, ChevronRight, AlertCircle, Car
 } from 'lucide-react';
 import AdminLayout from '../layouts/AdminLayout';
 import { carsAPI } from '../utils/api';
-import { validateCarForm } from '../utils/validation';
 import CarCard from '../components/CarCard';
 import CarDetailModal from '../components/CarDetailModal';
 import CarForm from '../components/CarForm';

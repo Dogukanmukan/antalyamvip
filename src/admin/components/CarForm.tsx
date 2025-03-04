@@ -181,12 +181,9 @@ const CarForm: React.FC<CarFormProps> = ({
       newErrors.luggage = 'Bagaj kapasitesi 1 veya daha fazla olmalıdır.';
     }
     
-    if (formData.price <= 0) {
+    if (parseFloat(formData.price.toString()) <= 0) {
       newErrors.price = 'Fiyat 0\'dan büyük olmalıdır.';
     }
-    
-    // Boş özellikleri filtrele
-    const filteredFeatures = formData.features.filter(f => f.trim() !== '');
     
     setErrors(newErrors);
     

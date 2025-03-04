@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { authAPI } from '../utils/api';
-import { validateLoginForm, isValidEmail, hasMinLength } from '../utils/validation';
+import { isValidEmail, hasMinLength } from '../utils/validation';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -97,16 +97,6 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-  
-  // For demo purposes - auto login
-  const handleDemoLogin = () => {
-    setEmail('admin@example.com');
-    setPassword('password123');
-    // Simulate login
-    localStorage.setItem('adminToken', 'demo-token');
-    localStorage.setItem('adminUser', JSON.stringify({ name: 'Demo Admin', email: 'admin@example.com' }));
-    navigate('/admin/dashboard');
   };
   
   return (

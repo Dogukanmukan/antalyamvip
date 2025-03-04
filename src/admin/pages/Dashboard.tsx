@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, Car, Calendar, TrendingUp, 
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, 
+  ArrowUpRight, ArrowDownRight, 
   ChevronRight, Clock, CheckCircle, XCircle, AlertCircle
 } from 'lucide-react';
 import AdminLayout from '../layouts/AdminLayout';
