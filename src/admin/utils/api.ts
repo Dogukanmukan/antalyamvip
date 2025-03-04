@@ -46,10 +46,8 @@ apiClient.interceptors.response.use(
 export const authAPI = {
   login: async (email: string, password: string) => {
     try {
-      // URL'deki /api yolunu düzelt - API_BASE_URL zaten /api içeriyor olabilir
-      const loginUrl = API_BASE_URL.endsWith('/api') 
-        ? `${API_BASE_URL}/auth/login` 
-        : `${API_BASE_URL}/api/auth/login`;
+      // Doğru login URL'sini oluştur
+      const loginUrl = '/api/auth/login';
       
       console.log('API: Sending login request to', loginUrl);
       console.log('API: Request payload:', { email, password: '******' });

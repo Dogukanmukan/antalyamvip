@@ -3,6 +3,10 @@ import { setCorsHeaders, errorResponse, successResponse } from '../_lib/supabase
 import { findAdminByEmail, verifyPassword } from '../_lib/db/adminUsers.js';
 import jwt from 'jsonwebtoken';
 
+// Varsayılan JWT Secret (güvenlik için gerçek uygulamalarda çevre değişkeni kullanılmalıdır)
+// Bu sadece geçici bir çözümdür, Vercel'de JWT_SECRET çevre değişkenini ayarlamanız önerilir
+const DEFAULT_JWT_SECRET = 'temporary_secret_key_for_development_only_please_set_env_variable';
+
 export default async function handler(req, res) {
   // CORS başlıklarını ayarla
   setCorsHeaders(res);
@@ -11,10 +15,10 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Environment check - JWT_SECRET exists:', !!process.env.JWT_SECRET);
   
-  // JWT_SECRET çevre değişkenini kontrol et
+  // JWT_SECRET çevre değişkenini kontrol et, yoksa varsayılan değeri kullan
+  const jwtSecret = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
   if (!process.env.JWT_SECRET) {
-    console.error('JWT_SECRET environment variable is not set!');
-    return errorResponse(res, 500, 'Server configuration error: JWT_SECRET is not set');
+    console.warn('WARNING: Using default JWT_SECRET. Please set the JWT_SECRET environment variable in Vercel.');
   }
   
   // OPTIONS isteğini işle
@@ -74,7 +78,7 @@ export default async function handler(req, res) {
           email: userData.email,
           role: userData.role
         },
-        process.env.JWT_SECRET,
+        jwtSecret,
         { expiresIn: '24h' }
       );
 
