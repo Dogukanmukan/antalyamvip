@@ -8,6 +8,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Bucket name - make sure this matches your Supabase bucket name
+const BUCKET_NAME = 'cars';
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -30,7 +33,8 @@ export default async function handler(req, res) {
         console.error('Supabase credentials are missing or invalid');
         return res.status(500).json({
           success: false,
-          error: 'Server configuration error'
+          error: 'Server configuration error',
+          message: 'Supabase credentials are missing'
         });
       }
 
@@ -94,9 +98,50 @@ export default async function handler(req, res) {
       
       console.log('Uploading to Supabase Storage with filename:', uniqueFilename);
       
+      // Check if bucket exists, if not try to create it
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Storage configuration error', 
+          message: bucketsError.message 
+        });
+      }
+      
+      const bucketExists = buckets.some(bucket => bucket.name === BUCKET_NAME);
+      
+      if (!bucketExists) {
+        console.log(`Bucket "${BUCKET_NAME}" not found, attempting to create it...`);
+        try {
+          const { error: createBucketError } = await supabase.storage.createBucket(BUCKET_NAME, {
+            public: true
+          });
+          
+          if (createBucketError) {
+            console.error('Error creating bucket:', createBucketError);
+            return res.status(500).json({ 
+              success: false, 
+              error: 'Failed to create storage bucket', 
+              message: createBucketError.message 
+            });
+          }
+          
+          console.log(`Bucket "${BUCKET_NAME}" created successfully`);
+        } catch (bucketError) {
+          console.error('Error creating bucket:', bucketError);
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to create storage bucket', 
+            message: bucketError.message 
+          });
+        }
+      }
+      
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('car-images')
+        .from(BUCKET_NAME)
         .upload(uniqueFilename, buffer, {
           contentType: `image/${fileExt}`,
           upsert: false
@@ -115,7 +160,7 @@ export default async function handler(req, res) {
       
       // Get public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
-        .from('car-images')
+        .from(BUCKET_NAME)
         .getPublicUrl(uniqueFilename);
 
       console.log('Public URL generated:', publicUrl);
@@ -130,7 +175,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ 
         success: false, 
         error: 'Image upload failed', 
-        message: error.message
+        message: error.message || 'Unknown error occurred'
       });
     }
   }
