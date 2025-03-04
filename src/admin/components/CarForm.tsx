@@ -145,128 +145,108 @@ const CarForm: React.FC<CarFormProps> = ({
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     
-    if (file) {
-      // Dosya boyutu kontrolü (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({
-          ...prev,
-          image: 'Resim boyutu 5MB\'dan küçük olmalıdır.'
-        }));
-        return;
-      }
+    if (!file) return;
+    
+    // Dosya boyutu kontrolü (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({
+        ...prev,
+        image: 'Dosya boyutu 5MB\'dan küçük olmalıdır.'
+      }));
+      return;
+    }
+    
+    // Dosya tipi kontrolü
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrors(prev => ({
+        ...prev,
+        image: 'Sadece JPEG, PNG ve WEBP formatları desteklenmektedir.'
+      }));
+      return;
+    }
+    
+    // Önizleme için URL oluştur
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    try {
+      console.log('Resim yükleme başlatılıyor:', file.name);
+      setIsUploading(true);
       
-      // Dosya tipini kontrol et
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        setErrors(prev => ({
-          ...prev,
-          image: 'Sadece JPEG, PNG ve WEBP formatları desteklenmektedir.'
-        }));
-        return;
-      }
+      // Kullanıcının oturum açtığını kontrol et
+      const token = localStorage.getItem('adminToken');
       
-      // Önizleme için URL oluştur
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      try {
-        console.log('Resim yükleme başlatılıyor:', file.name);
+      if (!token) {
+        console.error('Oturum açılmamış, resim yüklenemez');
         
-        // Kullanıcının oturum açtığını kontrol et
-        const token = localStorage.getItem('adminToken');
-        const user = localStorage.getItem('adminUser');
-        
-        console.log('Oturum kontrolü:', { 
-          tokenVar: !!token, 
-          userVar: !!user,
-          tokenLength: token ? token.length : 0
-        });
-        
-        if (!token) {
-          console.error('Oturum açılmamış, resim yüklenemez');
-          
-          // Supabase oturumunu kontrol et
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData && sessionData.session) {
-              console.log('Supabase oturumu bulundu, token yenileniyor');
-              localStorage.setItem('adminToken', sessionData.session.access_token);
-              
-              // Yeni token ile devam et
-              const result = await api.files.uploadFile(file, 'car-images');
-              console.log('Dosya yükleme başarılı:', result);
-              
-              setFormData(prev => ({
-                ...prev,
-                image: result.url
-              }));
-              
-              if (errors.image) {
-                setErrors(prev => ({ ...prev, image: '' }));
-              }
-              
-              return;
+        // Supabase oturumunu kontrol et
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData && sessionData.session) {
+            console.log('Supabase oturumu bulundu, token yenileniyor');
+            localStorage.setItem('adminToken', sessionData.session.access_token);
+            
+            // Yeni token ile devam et
+            const result = await api.files.uploadFile(file, 'car-images');
+            console.log('Dosya başarıyla yüklendi:', result);
+            
+            // Ana görsel olarak ayarla ve images dizisine de ekle
+            setFormData(prev => ({
+              ...prev,
+              images: [result.url]
+            }));
+            
+            if (errors.image) {
+              setErrors(prev => ({ ...prev, image: '' }));
             }
-          } catch (sessionError) {
-            console.error('Supabase oturum kontrolü hatası:', sessionError);
+            
+            setIsUploading(false);
+            return;
           }
-          
-          setErrors(prev => ({
-            ...prev,
-            image: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
-          }));
-          
-          // Kullanıcıyı login sayfasına yönlendir
-          setTimeout(() => {
-            window.location.href = '/admin/login';
-          }, 2000);
-          
-          return;
-        }
-        
-        // Dosyayı yükle
-        const result = await api.files.uploadFile(file, 'car-images');
-        
-        console.log('Dosya yükleme başarılı:', result);
-        
-        // Yüklenen dosyanın URL'sini form verisine ekle
-        setFormData(prev => ({
-          ...prev,
-          image: result.url
-        }));
-        
-        // Hata varsa temizle
-        if (errors.image) {
-          setErrors(prev => ({
-            ...prev,
-            image: ''
-          }));
-        }
-      } catch (error: any) {
-        console.error('Dosya yükleme hatası:', error);
-        
-        // Hata mesajını göster
-        let errorMessage = 'Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
-        
-        // Eğer 401 hatası ise oturum hatası mesajı göster
-        if (error.response && error.response.status === 401) {
-          errorMessage = 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.';
-          
-          // Kullanıcıyı login sayfasına yönlendir
-          setTimeout(() => {
-            localStorage.removeItem('adminToken');
-            localStorage.removeItem('adminUser');
-            window.location.href = '/admin/login';
-          }, 2000);
+        } catch (sessionError) {
+          console.error('Supabase oturum kontrolü hatası:', sessionError);
         }
         
         setErrors(prev => ({
           ...prev,
-          image: errorMessage
+          image: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
         }));
+        
+        // Kullanıcıyı login sayfasına yönlendir
+        setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 2000);
+        
+        setIsUploading(false);
+        return;
       }
+      
+      // Dosyayı yükle
+      const result = await api.files.uploadFile(file, 'car-images');
+      
+      console.log('Dosya başarıyla yüklendi:', result);
+      
+      // Ana görsel olarak ayarla ve images dizisine de ekle
+      setFormData(prev => ({
+        ...prev,
+        images: [result.url]
+      }));
+      
+      // Hata varsa temizle
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: '' }));
+      }
+    } catch (error: any) {
+      console.error('Resim yükleme hatası:', error);
+      setErrors(prev => ({
+        ...prev,
+        image: error.message || 'Resim yüklenirken bir hata oluştu.'
+      }));
+    } finally {
+      setIsUploading(false);
     }
   };
   
@@ -338,11 +318,10 @@ const CarForm: React.FC<CarFormProps> = ({
             const results = await api.files.uploadMultipleFiles(Array.from(files), 'car-images');
             console.log('Dosyalar başarıyla yüklendi:', results);
             
-            // Çoklu görsel yükleme durumunda, ana görsel alanını boşalt ve tüm görselleri images dizisine ekle
+            // Çoklu görsel yükleme durumunda, tüm görselleri images dizisine ekle
             if (results.length > 0) {
               setFormData(prev => ({
                 ...prev,
-                image: '', // Ana görsel alanını temizle
                 images: results.map(r => r.url) // Önceki görselleri silip sadece yeni yüklenen görselleri ekle
               }));
             }
@@ -377,11 +356,10 @@ const CarForm: React.FC<CarFormProps> = ({
       
       console.log('Dosyalar başarıyla yüklendi:', results);
       
-      // Çoklu görsel yükleme durumunda, ana görsel alanını boşalt ve tüm görselleri images dizisine ekle
+      // Çoklu görsel yükleme durumunda, tüm görselleri images dizisine ekle
       if (results.length > 0) {
         setFormData(prev => ({
           ...prev,
-          image: '', // Ana görsel alanını temizle
           images: results.map(r => r.url) // Önceki görselleri silip sadece yeni yüklenen görselleri ekle
         }));
       }
@@ -453,7 +431,6 @@ const CarForm: React.FC<CarFormProps> = ({
         status: formData.status,
         description: formData.description,
         features: filteredFeatures,
-        image: formData.image,
         images: processedImages
       };
       

@@ -50,6 +50,11 @@ export default async function handler(req, res) {
           : []
       };
 
+      // Eğer image alanı varsa ve images alanı boşsa, image'ı images'e ekle
+      if (formattedData.image && (!formattedData.images || formattedData.images.length === 0)) {
+        formattedData.images = [formattedData.image];
+      }
+
       return successResponse(res, formattedData);
     } catch (error) {
       console.error('Error fetching car:', error);
@@ -72,6 +77,12 @@ export default async function handler(req, res) {
         carData.images = carData.images.filter(img => img !== null && img !== 'null' && img !== '');
       } else {
         carData.images = [];
+      }
+      
+      // image alanı varsa ve images alanı boşsa, image'ı images'e ekle
+      if (carData.image && (!carData.images || carData.images.length === 0)) {
+        carData.images = [carData.image];
+        delete carData.image; // image alanını kaldır
       }
       
       // Aracı güncelle
@@ -100,6 +111,11 @@ export default async function handler(req, res) {
           ? data[0].images.filter(img => img !== null && img !== 'null') 
           : []
       };
+
+      // Eğer image alanı varsa ve images alanı boşsa, image'ı images'e ekle
+      if (formattedData.image && (!formattedData.images || formattedData.images.length === 0)) {
+        formattedData.images = [formattedData.image];
+      }
 
       return successResponse(res, formattedData, 'Car updated successfully');
     } catch (error) {

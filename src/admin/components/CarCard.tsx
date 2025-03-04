@@ -50,13 +50,7 @@ const CarCard: React.FC<CarCardProps> = ({ car, onEdit, onDelete, onView }) => {
     <div className="bg-white rounded-lg shadow-md overflow-hidden dark:bg-gray-800">
       {/* Araç Görseli */}
       <div className="relative h-48 bg-gray-200 dark:bg-gray-700">
-        {car.image ? (
-          <img
-            src={car.image}
-            alt={car.name}
-            className="h-full w-full object-cover"
-          />
-        ) : car.images && Array.isArray(car.images) && car.images.length > 0 ? (
+        {car.images && Array.isArray(car.images) && car.images.length > 0 ? (
           <img
             src={car.images[0]}
             alt={car.name}
