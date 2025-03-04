@@ -67,11 +67,16 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
     
     try {
       const response = await carsAPI.getAll();
-      setCars(response);
-      setFilteredCars(response);
+      // API yanıtının dizi olup olmadığını kontrol et
+      const carsArray = Array.isArray(response) ? response : [];
+      setCars(carsArray);
+      setFilteredCars(carsArray);
     } catch (err) {
       setError('Araçlar yüklenirken bir hata oluştu.');
       console.error('Araçlar yüklenirken hata:', err);
+      // Hata durumunda boş dizi kullan
+      setCars([]);
+      setFilteredCars([]);
     } finally {
       setLoading(false);
     }

@@ -206,8 +206,10 @@ const Bookings: React.FC = () => {
       
       try {
         const data = await bookingsAPI.getAll();
-        setBookings(data);
-        setFilteredBookings(data);
+        // API yanıtının dizi olup olmadığını kontrol et
+        const bookingsArray = Array.isArray(data) ? data : [];
+        setBookings(bookingsArray);
+        setFilteredBookings(bookingsArray);
       } catch (err) {
         console.error('Rezervasyonları yüklerken hata:', err);
         setError('Rezervasyonlar yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');

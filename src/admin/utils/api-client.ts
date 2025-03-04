@@ -52,13 +52,30 @@ class ApiClient {
       // 2. { success: true, message: 'Success', data: [...] } formatı
       // 3. Doğrudan veri formatı
       
+      let result;
       if (response.data && response.data.data !== undefined) {
-        return response.data.data;
+        result = response.data.data;
       } else {
-        return response.data;
+        result = response.data;
       }
+      
+      // Eğer dizi bekleniyorsa ve sonuç dizi değilse, boş dizi döndür
+      if (config.url?.includes('/cars') || config.url?.includes('/bookings')) {
+        if (!Array.isArray(result)) {
+          console.warn('API yanıtı dizi değil, boş dizi döndürülüyor:', result);
+          return [] as unknown as T;
+        }
+      }
+      
+      return result;
     } catch (error) {
       console.error('API request error:', error);
+      
+      // Hata durumunda, eğer dizi bekleniyorsa boş dizi döndür
+      if (config.url?.includes('/cars') || config.url?.includes('/bookings')) {
+        return [] as unknown as T;
+      }
+      
       throw error;
     }
   }
