@@ -17,6 +17,16 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Güvenli JSON ayrıştırma yardımcı fonksiyonu
+function safeJsonParse(jsonString) {
+  try {
+    return typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+  } catch (error) {
+    console.error('JSON parse error:', error);
+    return [];
+  }
+}
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -49,9 +59,10 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error in bookings handler:', error);
     return res.status(500).json({ 
+      success: false,
       error: 'Internal server error', 
-      message: error.message, 
-      stack: error.stack,
+      message: error.message || 'Unknown error', 
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
       supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
     });
@@ -77,7 +88,7 @@ async function getBookings(req, res) {
           id,
           name,
           category,
-          price,
+          price_per_day,
           images
         )
       `);
@@ -103,7 +114,11 @@ async function getBookings(req, res) {
 
     if (error) {
       console.error('Supabase error:', error);
-      throw error;
+      return res.status(500).json({
+        success: false,
+        error: 'Database query error',
+        message: error.message
+      });
     }
 
     console.log(`Successfully fetched ${data ? data.length : 0} bookings`);
@@ -117,15 +132,29 @@ async function getBookings(req, res) {
     }
     
     // Process data if needed
-    const processedData = data.map(booking => ({
-      ...booking,
-      cars: booking.cars ? {
-        ...booking.cars,
-        images: typeof booking.cars.images === 'string' 
-          ? JSON.parse(booking.cars.images) 
-          : booking.cars.images || []
-      } : null
-    }));
+    const processedData = data.map(booking => {
+      try {
+        // Araç bilgisi varsa işle
+        const carData = booking.cars ? {
+          ...booking.cars,
+          // Güvenli JSON ayrıştırma
+          images: safeJsonParse(booking.cars.images)
+        } : null;
+        
+        return {
+          ...booking,
+          cars: carData
+        };
+      } catch (err) {
+        console.error('Error processing booking data:', err, booking);
+        // Hata olsa bile rezervasyonu döndür, sadece araç bilgisini null olarak ayarla
+        return {
+          ...booking,
+          cars: null,
+          _processingError: err.message
+        };
+      }
+    });
     
     return res.status(200).json({
       success: true,
@@ -136,7 +165,7 @@ async function getBookings(req, res) {
     return res.status(500).json({ 
       success: false,
       error: 'Failed to fetch bookings',
-      message: error.message,
+      message: error.message || 'Unknown error',
       supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
       supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
     });
