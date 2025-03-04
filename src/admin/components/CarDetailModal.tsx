@@ -65,10 +65,33 @@ const CarDetailModal: React.FC<CarDetailModalProps> = ({ car, onClose }) => {
                     alt={car.name}
                     className="h-full w-full object-cover rounded-lg"
                   />
+                ) : car.images && car.images.length > 0 ? (
+                  <img
+                    src={car.images[0]}
+                    alt={car.name}
+                    className="h-full w-full object-cover rounded-lg"
+                  />
                 ) : (
                   <Car className="h-24 w-24 text-gray-400" />
                 )}
               </div>
+              
+              {/* Galeri Resimleri */}
+              {car.images && car.images.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium mb-2 dark:text-white">Galeri</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {car.images.map((image: string, index: number) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`${car.name} - ${index + 1}`}
+                        className="h-16 w-16 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {/* Durum */}
               <div className="mt-4">

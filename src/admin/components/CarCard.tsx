@@ -46,6 +46,12 @@ const CarCard: React.FC<CarCardProps> = ({ car, onEdit, onDelete, onView }) => {
             alt={car.name}
             className="h-full w-full object-cover"
           />
+        ) : car.images && car.images.length > 0 ? (
+          <img
+            src={car.images[0]}
+            alt={car.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-400 text-lg">Görsel Yok</div>

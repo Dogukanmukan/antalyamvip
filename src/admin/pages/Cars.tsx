@@ -86,8 +86,33 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       
       console.log(`Processed ${carsArray.length} cars:`, carsArray);
       
-      setCars(carsArray);
-      setFilteredCars(carsArray);
+      // JSON string olarak gelen alanları parse et
+      const processedCars = carsArray.map((car: any) => {
+        // images alanını kontrol et ve parse et
+        if (car.images && typeof car.images === 'string') {
+          try {
+            car.images = JSON.parse(car.images);
+          } catch (e) {
+            console.error('Error parsing car images:', e);
+            car.images = [];
+          }
+        }
+        
+        // features alanını kontrol et ve parse et
+        if (car.features && typeof car.features === 'string') {
+          try {
+            car.features = JSON.parse(car.features);
+          } catch (e) {
+            console.error('Error parsing car features:', e);
+            car.features = [];
+          }
+        }
+        
+        return car;
+      });
+      
+      setCars(processedCars);
+      setFilteredCars(processedCars);
     } catch (err) {
       console.error('Araçlar yüklenirken hata:', err);
       setError('Araçlar yüklenirken bir hata oluştu.');
@@ -106,6 +131,26 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
     
     try {
       const car = await carsAPI.getById(carId);
+      
+      // JSON string olarak gelen alanları parse et
+      if (car.images && typeof car.images === 'string') {
+        try {
+          car.images = JSON.parse(car.images);
+        } catch (e) {
+          console.error('Error parsing car images:', e);
+          car.images = [];
+        }
+      }
+      
+      if (car.features && typeof car.features === 'string') {
+        try {
+          car.features = JSON.parse(car.features);
+        } catch (e) {
+          console.error('Error parsing car features:', e);
+          car.features = [];
+        }
+      }
+      
       setCurrentCar(car);
     } catch (err) {
       setError('Araç bilgileri yüklenirken bir hata oluştu.');
