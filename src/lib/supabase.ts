@@ -1,16 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { config, getRuntimeConfig } from './config';
 
-// Supabase URL ve anahtarının varlığını kontrol et
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('Supabase URL veya Anon Key tanımlanmamış!', {
-    url: SUPABASE_URL,
-    key: SUPABASE_ANON_KEY ? 'Tanımlı' : 'Tanımsız'
-  });
-}
+// Get Supabase configuration from runtime config when available
+const supabaseUrl = typeof window !== 'undefined' 
+  ? getRuntimeConfig('SUPABASE_URL') 
+  : config.supabase.url;
 
-// Supabase istemcisini oluşturuyoruz
-export const supabase = createClient(
-  SUPABASE_URL || 'https://exdgeyldiufinjgwkeqy.supabase.co',
-  SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4ZGdleWxkaXVmaW5qZ3drZXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwNjYyOTgsImV4cCI6MjA1NjY0MjI5OH0.6_-UHxCaWL8twSGkHZQulQCSwvpvIMVVJ7ngSUnuQDc'
-);
+const supabaseAnonKey = typeof window !== 'undefined'
+  ? getRuntimeConfig('SUPABASE_ANON_KEY')
+  : config.supabase.anonKey;
+
+// Log configuration for debugging
+console.log('Main Supabase Config:', {
+  url: supabaseUrl,
+  keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
+  environment: typeof window !== 'undefined' ? 'browser' : 'server'
+});
+
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

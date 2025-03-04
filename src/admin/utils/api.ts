@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getRuntimeConfig } from '../../lib/config';
 
 // API temel URL'si
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = getRuntimeConfig('API_BASE_URL');
 
 // Axios instance oluşturma
 const apiClient = axios.create({

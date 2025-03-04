@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Car, Booking, User, DashboardStats } from './supabase';
+import { getRuntimeConfig } from '../../lib/config';
 
 // API temel URL'si
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = getRuntimeConfig('API_BASE_URL');
 
 // API istemci sınıfı
 class ApiClient {

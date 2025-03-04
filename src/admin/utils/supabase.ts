@@ -1,20 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { getRuntimeConfig } from '../../lib/config';
 
-// Varsayılan değerler
-const DEFAULT_URL = 'https://exdgeyldiufinjgwkeqy.supabase.co';
-const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4ZGdleWxkaXVmaW5qZ3drZXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwNjYyOTgsImV4cCI6MjA1NjY0MjI5OH0.6_-UHxCaWL8twSGkHZQulQCSwvpvIMVVJ7ngSUnuQDc';
+// Get Supabase configuration from runtime config
+const supabaseUrl = getRuntimeConfig('SUPABASE_URL');
+const supabaseAnonKey = getRuntimeConfig('SUPABASE_ANON_KEY');
 
-// Environment variables are already set up in your project
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_KEY;
-
-// Değerleri kontrol et
-if (supabaseUrl === DEFAULT_URL || supabaseAnonKey === DEFAULT_KEY) {
-  console.warn('Admin: Supabase için varsayılan değerler kullanılıyor!', {
-    url: supabaseUrl === DEFAULT_URL ? 'DEFAULT' : 'ENV',
-    key: supabaseAnonKey === DEFAULT_KEY ? 'DEFAULT' : 'ENV'
-  });
-}
+// Log configuration source for debugging
+console.log('Admin Supabase Config:', {
+  url: supabaseUrl,
+  keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
+});
 
 // Create a single supabase client for the admin panel
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -1,21 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 import { User, Car, Booking, DashboardStats } from './supabase';
 import { safeJsonParse } from './migration-helper';
+import { getRuntimeConfig } from '../../lib/config';
 
-// Initialize Supabase client
-const DEFAULT_URL = 'https://exdgeyldiufinjgwkeqy.supabase.co';
-const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4ZGdleWxkaXVmaW5qZ3drZXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEwNjYyOTgsImV4cCI6MjA1NjY0MjI5OH0.6_-UHxCaWL8twSGkHZQulQCSwvpvIMVVJ7ngSUnuQDc';
+// Initialize Supabase client using runtime config
+const supabaseUrl = getRuntimeConfig('SUPABASE_URL');
+const supabaseKey = getRuntimeConfig('SUPABASE_ANON_KEY');
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_KEY;
-
-// Değerleri kontrol et
-if (supabaseUrl === DEFAULT_URL || supabaseKey === DEFAULT_KEY) {
-  console.warn('API-Supabase: Supabase için varsayılan değerler kullanılıyor!', {
-    url: supabaseUrl === DEFAULT_URL ? 'DEFAULT' : 'ENV',
-    key: supabaseKey === DEFAULT_KEY ? 'DEFAULT' : 'ENV'
-  });
-}
+// Log configuration for debugging
+console.log('API-Supabase Config:', { 
+  url: supabaseUrl,
+  keyLength: supabaseKey ? supabaseKey.length : 0
+});
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

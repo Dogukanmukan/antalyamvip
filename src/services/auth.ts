@@ -1,10 +1,13 @@
 import { fetch } from '../lib/fetch';
-import { API_BASE_URL } from '../lib/config';
+import { getRuntimeConfig } from '../lib/config';
+
+// Get API base URL from runtime config
+const getApiBaseUrl = () => getRuntimeConfig('API_BASE_URL');
 
 // Admin kullanıcısı oluştur
 export async function createAdmin(username: string, password: string, email: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/create-admin`, {
+    const response = await fetch(`${getApiBaseUrl()}/create-admin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,7 +29,7 @@ export async function createAdmin(username: string, password: string, email: str
 // Kullanıcı girişi
 export async function login(username: string, password: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
+    const response = await fetch(`${getApiBaseUrl()}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

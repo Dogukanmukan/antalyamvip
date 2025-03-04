@@ -1,10 +1,13 @@
 import { fetch } from '../lib/fetch';
-import { API_BASE_URL } from '../lib/config';
+import { getRuntimeConfig } from '../lib/config';
+
+// Get API base URL from runtime config
+const getApiBaseUrl = () => getRuntimeConfig('API_BASE_URL');
 
 // Veritabanı başlatma
 export async function initializeDatabase() {
   try {
-    const response = await fetch(`${API_BASE_URL}/init-db`, {
+    const response = await fetch(`${getApiBaseUrl()}/init-db`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,7 +28,7 @@ export async function initializeDatabase() {
 // Araçları getir
 export async function getCars() {
   try {
-    const response = await fetch(`${API_BASE_URL}/cars`);
+    const response = await fetch(`${getApiBaseUrl()}/cars`);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -37,7 +40,7 @@ export async function getCars() {
 // Araç ekle
 export async function createCar(carData: any) {
   try {
-    const response = await fetch(`${API_BASE_URL}/cars`, {
+    const response = await fetch(`${getApiBaseUrl()}/cars`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -64,7 +67,7 @@ export async function uploadImage(imageFile: File) {
       reader.readAsDataURL(imageFile);
     });
 
-    const response = await fetch(`${API_BASE_URL}/upload`, {
+    const response = await fetch(`${getApiBaseUrl()}/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
