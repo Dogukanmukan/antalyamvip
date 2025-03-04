@@ -4,8 +4,8 @@ import { settingsAPI as newSettingsAPI } from './api-supabase';
 import { convertSupabaseBookingToOld, convertOldCarToSupabase, convertSupabaseCarToOld } from './migration-helper';
 
 // Flag to control which API to use
-// Set this to false to use the old API
-const USE_SUPABASE_API = false;
+// Set this to true to use the Supabase API
+const USE_SUPABASE_API = true;
 
 // Authentication API
 export const authAPI = {
