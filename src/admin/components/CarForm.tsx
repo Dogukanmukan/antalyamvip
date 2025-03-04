@@ -16,6 +16,8 @@ const CarForm: React.FC<CarFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
+    make: '',
+    model: '',
     category: 'Sedan',
     passengers: 4,
     luggage: 3,
@@ -34,6 +36,8 @@ const CarForm: React.FC<CarFormProps> = ({
     if (initialData) {
       setFormData({
         name: initialData.name || '',
+        make: initialData.make || '',
+        model: initialData.model || '',
         category: initialData.category || 'Sedan',
         passengers: initialData.passengers || 4,
         luggage: initialData.luggage || 3,
@@ -173,6 +177,14 @@ const CarForm: React.FC<CarFormProps> = ({
       newErrors.name = 'Araç adı zorunludur.';
     }
     
+    if (!formData.make.trim()) {
+      newErrors.make = 'Marka zorunludur.';
+    }
+    
+    if (!formData.model.trim()) {
+      newErrors.model = 'Model zorunludur.';
+    }
+    
     if (formData.passengers <= 0) {
       newErrors.passengers = 'Yolcu kapasitesi 1 veya daha fazla olmalıdır.';
     }
@@ -199,11 +211,16 @@ const CarForm: React.FC<CarFormProps> = ({
       // Boş özellikleri filtrele
       const filteredFeatures = formData.features.filter(f => f.trim() !== '');
       
-      // Formu gönder
-      onSubmit({
+      // API'ye uygun formatta veriyi hazırla
+      const apiFormData = {
         ...formData,
-        features: filteredFeatures
-      });
+        features: filteredFeatures,
+        seats: formData.passengers,
+        price_per_day: formData.price
+      };
+      
+      // Formu gönder
+      onSubmit(apiFormData);
     }
   };
   
@@ -231,6 +248,44 @@ const CarForm: React.FC<CarFormProps> = ({
               placeholder="Mercedes Vito VIP"
             />
             {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+          </div>
+          
+          {/* Marka */}
+          <div>
+            <label htmlFor="make" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Marka <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="make"
+              name="make"
+              value={formData.make}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                errors.make ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Mercedes"
+            />
+            {errors.make && <p className="mt-1 text-sm text-red-500">{errors.make}</p>}
+          </div>
+          
+          {/* Model */}
+          <div>
+            <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Model <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="model"
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                errors.model ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Vito"
+            />
+            {errors.model && <p className="mt-1 text-sm text-red-500">{errors.model}</p>}
           </div>
           
           {/* Kategori */}
