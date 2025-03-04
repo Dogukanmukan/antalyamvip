@@ -487,10 +487,53 @@ export const settingsAPI = {
   }
 };
 
+// File Upload API
+export const fileAPI = {
+  uploadFile: async (file: File, folder: string = 'car-images'): Promise<{ url: string; path: string }> => {
+    try {
+      // Dosya adını oluştur (UUID + orijinal dosya uzantısı)
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+      
+      console.log('Uploading file to Supabase storage:', { fileName, filePath, fileType: file.type });
+      
+      // Dosyayı Supabase storage'a yükle
+      const { data, error } = await supabase.storage
+        .from('public')
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true
+        });
+        
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        throw new Error(`File upload failed: ${error.message}`);
+      }
+      
+      // Dosya URL'sini al
+      const { data: urlData } = supabase.storage
+        .from('public')
+        .getPublicUrl(filePath);
+        
+      console.log('File uploaded successfully:', urlData.publicUrl);
+      
+      return {
+        url: urlData.publicUrl,
+        path: filePath
+      };
+    } catch (error) {
+      console.error('File upload error:', error);
+      throw error;
+    }
+  }
+};
+
 export default {
   auth: authAPI,
   bookings: bookingsAPI,
   cars: carsAPI,
   stats: statsAPI,
-  settings: settingsAPI
+  settings: settingsAPI,
+  files: fileAPI
 }; 

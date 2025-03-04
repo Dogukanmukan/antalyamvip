@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Save, Upload } from 'lucide-react';
+import api from '../utils/api-compat';
 
 interface CarFormProps {
   initialData?: any;
@@ -123,7 +124,7 @@ const CarForm: React.FC<CarFormProps> = ({
   };
   
   // Resim yükleme
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     
     if (file) {
@@ -152,18 +153,30 @@ const CarForm: React.FC<CarFormProps> = ({
       };
       reader.readAsDataURL(file);
       
-      // Gerçek uygulamada burada dosya yükleme işlemi yapılır
-      // Şimdilik sadece dosya adını kaydediyoruz
-      setFormData(prev => ({
-        ...prev,
-        image: file.name
-      }));
-      
-      // Hata varsa temizle
-      if (errors.image) {
+      try {
+        // Dosyayı Supabase storage'a yükle
+        const result = await api.files.uploadFile(file, 'car-images');
+        
+        console.log('Dosya yükleme başarılı:', result);
+        
+        // Yüklenen dosyanın URL'sini form verisine ekle
+        setFormData(prev => ({
+          ...prev,
+          image: result.url
+        }));
+        
+        // Hata varsa temizle
+        if (errors.image) {
+          setErrors(prev => ({
+            ...prev,
+            image: ''
+          }));
+        }
+      } catch (error) {
+        console.error('Dosya yükleme hatası:', error);
         setErrors(prev => ({
           ...prev,
-          image: ''
+          image: 'Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.'
         }));
       }
     }

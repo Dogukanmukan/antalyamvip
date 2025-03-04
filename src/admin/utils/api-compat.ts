@@ -136,12 +136,11 @@ const api = {
     }
   },
   
-  // Dosya yükleme işlemleri
+  // Dosya işlemleri
   files: {
-    upload: async (file: File, folder: string = 'uploads'): Promise<{ url: string; path: string }> => {
+    uploadFile: async (file: File, folder?: string) => {
       if (USE_SUPABASE_API) {
-        // Supabase API'de dosya yükleme işlemi yoksa, uygun bir alternatif kullan
-        throw new Error('File upload method not implemented in Supabase API');
+        return supabaseApi.fileAPI.uploadFile(file, folder);
       }
       return apiClient.uploadFile(file, folder);
     }
