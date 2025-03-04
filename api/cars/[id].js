@@ -1,18 +1,9 @@
 // Vercel serverless function for managing individual cars
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-console.log('API Request received to /api/cars/[id]');
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key Length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase credentials. URL or key is empty.');
-}
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -56,9 +47,7 @@ module.exports = async (req, res) => {
     console.error('Error in cars/[id] handler:', error);
     return res.status(500).json({ 
       error: 'Internal server error', 
-      message: error.message,
-      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
-      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+      message: error.message
     });
   }
 };
@@ -76,7 +65,7 @@ async function getCar(req, res, id) {
 
     if (error) {
       console.error('Error fetching car:', error);
-      return res.status(404).json({ error: 'Car not found', details: error.message });
+      return res.status(404).json({ error: 'Car not found' });
     }
 
     if (!data) {
@@ -86,33 +75,19 @@ async function getCar(req, res, id) {
 
     console.log('Car found:', data.id);
     
-    // Process arrays if needed
-    if (data.images && typeof data.images === 'string') {
-      try {
-        data.images = JSON.parse(data.images);
-      } catch (e) {
-        console.error('Error parsing images JSON:', e);
-        data.images = data.images.split(',').map(url => url.trim());
-      }
-    }
+    // Process arrays for response
+    const processedData = {
+      ...data,
+      images: processJsonField(data.images),
+      features: processJsonField(data.features)
+    };
     
-    if (data.features && typeof data.features === 'string') {
-      try {
-        data.features = JSON.parse(data.features);
-      } catch (e) {
-        console.error('Error parsing features JSON:', e);
-        data.features = data.features.split(',').map(feature => feature.trim());
-      }
-    }
-    
-    return res.status(200).json(data);
+    return res.status(200).json(processedData);
   } catch (error) {
     console.error('Error in getCar:', error);
     return res.status(500).json({ 
       error: 'Failed to fetch car', 
-      message: error.message,
-      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
-      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+      message: error.message
     });
   }
 }
@@ -138,59 +113,12 @@ async function updateCar(req, res, id) {
       return res.status(400).json({ error: 'Name and category are required' });
     }
     
-    // Create a processed copy of the data for storage
-    const processedData = { ...carData };
-    
-    // Process images array
-    if (processedData.images) {
-      if (Array.isArray(processedData.images)) {
-        console.log('Processing images array:', processedData.images.length, 'images');
-        processedData.images = JSON.stringify(processedData.images);
-      } else if (typeof processedData.images === 'string') {
-        // Check if it's already a JSON string
-        try {
-          JSON.parse(processedData.images);
-          console.log('Images already in JSON string format');
-        } catch (e) {
-          // If not a valid JSON string, convert to JSON
-          console.log('Converting images string to JSON');
-          processedData.images = JSON.stringify(processedData.images.split(',').map(url => url.trim()));
-        }
-      } else {
-        console.error('Invalid images format:', typeof processedData.images);
-        return res.status(400).json({ error: 'Invalid images format' });
-      }
-    } else {
-      // Default to empty array if images is missing
-      processedData.images = JSON.stringify([]);
-    }
-    
-    // Process features array
-    if (processedData.features) {
-      if (Array.isArray(processedData.features)) {
-        console.log('Processing features array:', processedData.features.length, 'features');
-        // Filter out empty features
-        processedData.features = JSON.stringify(processedData.features.filter(f => f.trim() !== ''));
-      } else if (typeof processedData.features === 'string') {
-        // Check if it's already a JSON string
-        try {
-          JSON.parse(processedData.features);
-          console.log('Features already in JSON string format');
-        } catch (e) {
-          // If not a valid JSON string, convert to JSON
-          console.log('Converting features string to JSON');
-          processedData.features = JSON.stringify(processedData.features.split(',')
-            .map(feature => feature.trim())
-            .filter(feature => feature !== ''));
-        }
-      } else {
-        console.error('Invalid features format:', typeof processedData.features);
-        return res.status(400).json({ error: 'Invalid features format' });
-      }
-    } else {
-      // Default to empty array if features is missing
-      processedData.features = JSON.stringify([]);
-    }
+    // Process data for storage
+    const processedData = {
+      ...carData,
+      images: Array.isArray(carData.images) ? JSON.stringify(carData.images) : carData.images,
+      features: Array.isArray(carData.features) ? JSON.stringify(carData.features) : carData.features
+    };
     
     console.log('Processed car data for update:', JSON.stringify(processedData));
     
@@ -205,60 +133,25 @@ async function updateCar(req, res, id) {
       console.error('Error updating car:', error);
       return res.status(500).json({ 
         error: 'Failed to update car', 
-        message: error.message,
-        details: error
+        message: error.message
       });
-    }
-
-    if (!data || data.length === 0) {
-      console.error('No data returned from update operation');
-      // Check if the car exists
-      const { data: checkData, error: checkError } = await supabase
-        .from('cars')
-        .select('id')
-        .eq('id', id)
-        .single();
-        
-      if (checkError || !checkData) {
-        return res.status(404).json({ error: 'Car not found' });
-      }
-      
-      // Car exists but no data returned (might be no changes)
-      return res.status(200).json({ id: parseInt(id), message: 'No changes applied' });
     }
 
     console.log('Car updated successfully:', id);
     
     // Process arrays for response
-    const processedResponse = { ...data[0] };
-    
-    if (processedResponse.images && typeof processedResponse.images === 'string') {
-      try {
-        processedResponse.images = JSON.parse(processedResponse.images);
-      } catch (e) {
-        console.error('Error parsing response images JSON:', e);
-        processedResponse.images = processedResponse.images.split(',').map(url => url.trim());
-      }
-    }
-    
-    if (processedResponse.features && typeof processedResponse.features === 'string') {
-      try {
-        processedResponse.features = JSON.parse(processedResponse.features);
-      } catch (e) {
-        console.error('Error parsing response features JSON:', e);
-        processedResponse.features = processedResponse.features.split(',').map(feature => feature.trim());
-      }
-    }
+    const processedResponse = data && data[0] ? {
+      ...data[0],
+      images: processJsonField(data[0].images),
+      features: processJsonField(data[0].features)
+    } : { id: parseInt(id) };
     
     return res.status(200).json(processedResponse);
   } catch (error) {
     console.error('Error in updateCar:', error);
     return res.status(500).json({ 
       error: 'Failed to update car', 
-      message: error.message,
-      stack: error.stack,
-      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
-      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+      message: error.message
     });
   }
 }
@@ -277,8 +170,7 @@ async function deleteCar(req, res, id) {
       console.error('Error deleting car:', error);
       return res.status(500).json({ 
         error: 'Failed to delete car', 
-        message: error.message,
-        details: error
+        message: error.message
       });
     }
 
@@ -288,9 +180,23 @@ async function deleteCar(req, res, id) {
     console.error('Error in deleteCar:', error);
     return res.status(500).json({ 
       error: 'Failed to delete car', 
-      message: error.message,
-      supabaseUrl: supabaseUrl ? 'Configured' : 'Missing',
-      supabaseKeyLength: supabaseServiceKey ? supabaseServiceKey.length : 0
+      message: error.message
     });
   }
+}
+
+// Helper function to process JSON fields
+function processJsonField(field) {
+  if (!field) return [];
+  
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      console.error('Error parsing JSON field:', e);
+      return field.split(',').map(item => item.trim());
+    }
+  }
+  
+  return field;
 }
