@@ -45,8 +45,18 @@ class ApiClient {
   // Genel istek metodu
   private async request<T>(config: AxiosRequestConfig): Promise<T> {
     try {
-      const response: AxiosResponse<{ data: T }> = await this.client(config);
-      return response.data.data;
+      const response: AxiosResponse = await this.client(config);
+      
+      // API yanıtı farklı formatlarda olabilir
+      // 1. { success: true, data: [...] } formatı
+      // 2. { success: true, message: 'Success', data: [...] } formatı
+      // 3. Doğrudan veri formatı
+      
+      if (response.data && response.data.data !== undefined) {
+        return response.data.data;
+      } else {
+        return response.data;
+      }
     } catch (error) {
       console.error('API request error:', error);
       throw error;

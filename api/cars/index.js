@@ -44,7 +44,8 @@ export default async function handler(req, res) {
 
       if (error) {
         console.error('Supabase error:', error);
-        return errorResponse(res, 500, 'Database error', error.message);
+        // Hata durumunda boş dizi döndür
+        return successResponse(res, []);
       }
 
       // JSON alanlarını parse et
@@ -57,7 +58,8 @@ export default async function handler(req, res) {
       return successResponse(res, formattedData);
     } catch (error) {
       console.error('Error fetching cars:', error);
-      return errorResponse(res, 500, 'Failed to fetch cars', error.message);
+      // Hata durumunda boş dizi döndür
+      return successResponse(res, []);
     }
   }
 

@@ -155,26 +155,40 @@ const Dashboard: React.FC = () => {
       try {
         // API'den istatistikleri al
         const statsData = await statsAPI.getDashboardStats();
-        setStats(statsData);
+        setStats(statsData || {
+          totalBookings: 0,
+          totalCars: 0,
+          activeBookings: 0,
+          monthlyRevenue: 0,
+          bookingCompletionRate: 0,
+          carOccupancyRate: 0,
+          cancellationRate: 0
+        });
         
         // Son rezervasyonları al
         const bookingsData = await bookingsAPI.getAll();
+        // API yanıtının dizi olup olmadığını kontrol et
+        const bookingsArray = Array.isArray(bookingsData) ? bookingsData : [];
+        
         // Son 5 rezervasyonu al
-        const recent = bookingsData.slice(0, 5).map((booking: any) => ({
+        const recent = bookingsArray.slice(0, 5).map((booking: any) => ({
           id: booking.id,
-          customer: booking.customer,
+          customer: booking.full_name || booking.customer || 'Misafir',
           date: booking.pickup_date,
-          car: booking.car,
-          status: booking.status,
-          amount: booking.amount
+          car: booking.car?.name || booking.car || 'Araç bilgisi yok',
+          status: booking.status || 'pending',
+          amount: booking.amount || booking.price || 0
         }));
         setRecentBookings(recent);
         
         // Popüler araçları al
         const carsData = await carsAPI.getAll();
+        // API yanıtının dizi olup olmadığını kontrol et
+        const carsArray = Array.isArray(carsData) ? carsData : [];
+        
         // Rezervasyon sayısına göre sırala ve ilk 3'ü al
-        const popular = carsData
-          .sort((a: any, b: any) => b.bookings_count - a.bookings_count)
+        const popular = carsArray
+          .sort((a: any, b: any) => (b.bookings_count || 0) - (a.bookings_count || 0))
           .slice(0, 3)
           .map((car: any) => ({
             id: car.id,
