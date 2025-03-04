@@ -12,72 +12,68 @@ import { useTranslation } from 'react-i18next';
 import ScrollToTop from './components/ScrollToTop';
 
 // Admin sayfaları
-import AdminLogin from './pages/admin/Login';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminCars from './pages/admin/Cars';
-import EditCar from './pages/admin/EditCar';
-import AdminBookings from './pages/admin/Bookings';
-import AdminSettings from './pages/admin/Settings';
+import AdminLogin from './admin/pages/Login';
+import AdminDashboard from './admin/pages/Dashboard';
+import AdminBookings from './admin/pages/Bookings';
+import AdminCars from './admin/pages/Cars';
+import AdminSettings from './admin/pages/Settings';
 
 // Layout bileşenleri
 interface MainLayoutProps {
   children: ReactNode;
 }
 
+// Ana site layout
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => (
-  <>
+  <div className="flex flex-col min-h-screen">
     <Navbar />
     <main className="flex-grow">{children}</main>
     <Footer />
-  </>
+  </div>
 );
 
-// Admin sayfaları için dili Türkçe olarak sabitleyen wrapper bileşeni
+// Admin layout wrapper
 const AdminWrapper: React.FC<MainLayoutProps> = ({ children }) => {
-  const { i18n } = useTranslation();
-  
-  // Bileşen yüklendiğinde dili Türkçe olarak ayarla
-  useEffect(() => {
-    if (i18n.language !== 'tr') {
-      i18n.changeLanguage('tr');
-    }
-  }, [i18n]);
-  
-  return <>{children}</>;
+  // Admin sayfalarında navbar ve footer gösterme
+  return (
+    <div className="min-h-screen">
+      <ScrollToTop />
+      {children}
+    </div>
+  );
 };
 
 function App() {
   const { i18n } = useTranslation();
-  
+
   useEffect(() => {
-    document.title = i18n.language === 'tr' 
-      ? 'AntalyamVip | Premium Mercedes Vito VIP Taşımacılık' 
-      : 'AntalyamVip | Premium Mercedes Vito VIP Transportation';
-  }, [i18n.language]);
+    // Kullanıcının tercih ettiği dili localStorage'dan al
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage) {
+      i18n.changeLanguage(savedLanguage);
+    }
+  }, [i18n]);
 
   return (
     <Router>
-      <ScrollToTop />
-      <div className="min-h-screen bg-white flex flex-col">
-        <Routes>
-          {/* Admin Rotaları */}
-          <Route path="/admin/login" element={<AdminWrapper><AdminLogin /></AdminWrapper>} />
-          <Route path="/admin/dashboard" element={<AdminWrapper><AdminDashboard /></AdminWrapper>} />
-          <Route path="/admin/cars" element={<AdminWrapper><AdminCars /></AdminWrapper>} />
-          <Route path="/admin/cars/add" element={<AdminWrapper><EditCar /></AdminWrapper>} />
-          <Route path="/admin/cars/edit/:id" element={<AdminWrapper><EditCar /></AdminWrapper>} />
-          <Route path="/admin/bookings" element={<AdminWrapper><AdminBookings /></AdminWrapper>} />
-          <Route path="/admin/settings" element={<AdminWrapper><AdminSettings /></AdminWrapper>} />
-          
-          {/* Ana Site Rotaları */}
-          <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-          <Route path="/fleet" element={<MainLayout><Fleet /></MainLayout>} />
-          <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
-          <Route path="/about" element={<MainLayout><About /></MainLayout>} />
-          <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
-          <Route path="/booking-results" element={<MainLayout><BookingResults /></MainLayout>} />
-        </Routes>
-      </div>
+      <Routes>
+        {/* Ana site rotaları */}
+        <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+        <Route path="/fleet" element={<MainLayout><Fleet /></MainLayout>} />
+        <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
+        <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+        <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
+        <Route path="/booking-results" element={<MainLayout><BookingResults /></MainLayout>} />
+        
+        {/* Admin rotaları */}
+        <Route path="/admin/login" element={<AdminWrapper><AdminLogin /></AdminWrapper>} />
+        <Route path="/admin/dashboard" element={<AdminWrapper><AdminDashboard /></AdminWrapper>} />
+        <Route path="/admin/bookings" element={<AdminWrapper><AdminBookings /></AdminWrapper>} />
+        <Route path="/admin/cars" element={<AdminWrapper><AdminCars /></AdminWrapper>} />
+        <Route path="/admin/cars/add" element={<AdminWrapper><AdminCars isAddMode={true} /></AdminWrapper>} />
+        <Route path="/admin/cars/edit/:id" element={<AdminWrapper><AdminCars isEditMode={true} /></AdminWrapper>} />
+        <Route path="/admin/settings" element={<AdminWrapper><AdminSettings /></AdminWrapper>} />
+      </Routes>
     </Router>
   );
 }
