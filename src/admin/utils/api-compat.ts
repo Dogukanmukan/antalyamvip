@@ -3,7 +3,7 @@ import apiClient from './api-client';
 import * as supabaseApi from './api-supabase';
 
 // API seçimi için değişken
-export const USE_SUPABASE_API = true;
+export const USE_SUPABASE_API = false;
 
 // Uyumluluk katmanı - API'ler arasında geçiş yapmayı kolaylaştırır
 const api = {
