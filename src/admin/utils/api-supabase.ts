@@ -499,8 +499,8 @@ export const fileAPI = {
       console.log('Uploading file to Supabase storage:', { fileName, filePath, fileType: file.type });
       
       // Dosyayı Supabase storage'a yükle
-      const { data, error } = await supabase.storage
-        .from('public')
+      const { error } = await supabase.storage
+        .from('public-images')
         .upload(filePath, file, {
           contentType: file.type,
           upsert: true
@@ -513,7 +513,7 @@ export const fileAPI = {
       
       // Dosya URL'sini al
       const { data: urlData } = supabase.storage
-        .from('public')
+        .from('public-images')
         .getPublicUrl(filePath);
         
       console.log('File uploaded successfully:', urlData.publicUrl);
