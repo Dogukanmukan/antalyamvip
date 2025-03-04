@@ -99,27 +99,33 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       
       // JSON string olarak gelen alanları parse et
       const processedCars = carsArray.map((car: any) => {
-        // images alanını kontrol et ve parse et
-        if (car.images && typeof car.images === 'string') {
+        // images alanını kontrol et
+        if (!car.images) {
+          // images alanı yoksa boş dizi ata
+          car.images = [];
+          console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+        } else if (typeof car.images === 'string') {
           try {
             // Boş string kontrolü
             if (car.images.trim() === '') {
               car.images = [];
               console.log(`Araç ID ${car.id} için images boş string, boş dizi atandı`);
             } else {
+              // Eğer string olarak geldiyse parse et (eski veriler için)
               car.images = JSON.parse(car.images);
-              console.log(`Araç ID ${car.id} için images parse edildi:`, car.images);
+              console.log(`Araç ID ${car.id} için images string'den parse edildi:`, car.images);
             }
           } catch (e) {
             console.error(`Araç ID ${car.id} için images parse hatası:`, e);
             car.images = [];
           }
-        } else if (!car.images) {
-          // images alanı yoksa boş dizi ata
-          car.images = [];
-          console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+        } else if (Array.isArray(car.images)) {
+          // Dizi olarak geldiyse null değerleri temizle
+          car.images = car.images.filter((img: any) => img !== null && img !== 'null' && img !== '');
+          console.log(`Araç ID ${car.id} için images dizisinden null değerler temizlendi:`, car.images);
         } else {
-          console.log(`Araç ID ${car.id} için images alanı zaten bir dizi:`, car.images);
+          console.log(`Araç ID ${car.id} için images alanı beklenmeyen formatta:`, car.images);
+          car.images = [];
         }
         
         // features alanını kontrol et ve parse et
@@ -169,26 +175,32 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       const car = await carsAPI.getById(carId);
       
       // JSON string olarak gelen alanları parse et
-      if (car.images && typeof car.images === 'string') {
+      if (!car.images) {
+        // images alanı yoksa boş dizi ata
+        car.images = [];
+        console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+      } else if (typeof car.images === 'string') {
         try {
           // Boş string kontrolü
           if (car.images.trim() === '') {
             car.images = [];
             console.log(`Araç ID ${car.id} için images boş string, boş dizi atandı`);
           } else {
+            // Eğer string olarak geldiyse parse et (eski veriler için)
             car.images = JSON.parse(car.images);
-            console.log(`Araç ID ${car.id} için images parse edildi:`, car.images);
+            console.log(`Araç ID ${car.id} için images string'den parse edildi:`, car.images);
           }
         } catch (e) {
           console.error(`Araç ID ${car.id} için images parse hatası:`, e);
           car.images = [];
         }
-      } else if (!car.images) {
-        // images alanı yoksa boş dizi ata
-        car.images = [];
-        console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+      } else if (Array.isArray(car.images)) {
+        // Dizi olarak geldiyse null değerleri temizle
+        car.images = car.images.filter((img: any) => img !== null && img !== 'null' && img !== '');
+        console.log(`Araç ID ${car.id} için images dizisinden null değerler temizlendi:`, car.images);
       } else {
-        console.log(`Araç ID ${car.id} için images alanı zaten bir dizi:`, car.images);
+        console.log(`Araç ID ${car.id} için images alanı beklenmeyen formatta:`, car.images);
+        car.images = [];
       }
       
       if (car.features && typeof car.features === 'string') {

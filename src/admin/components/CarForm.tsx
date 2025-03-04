@@ -343,7 +343,7 @@ const CarForm: React.FC<CarFormProps> = ({
               setFormData(prev => ({
                 ...prev,
                 image: '', // Ana görsel alanını temizle
-                images: [...prev.images, ...results.map(r => r.url)]
+                images: results.map(r => r.url) // Önceki görselleri silip sadece yeni yüklenen görselleri ekle
               }));
             }
             
@@ -382,7 +382,7 @@ const CarForm: React.FC<CarFormProps> = ({
         setFormData(prev => ({
           ...prev,
           image: '', // Ana görsel alanını temizle
-          images: [...prev.images, ...results.map(r => r.url)]
+          images: results.map(r => r.url) // Önceki görselleri silip sadece yeni yüklenen görselleri ekle
         }));
       }
       
@@ -434,9 +434,12 @@ const CarForm: React.FC<CarFormProps> = ({
       // Images alanını kontrol et
       let processedImages = formData.images;
       
-      // Eğer images boş bir dizi ise boş dizi olarak bırak
-      // Boş dizi olması durumunda API tarafında JSON.stringify([]) şeklinde kaydedilecek
-      // Bu da veritabanında "[]" olarak saklanacak ve parse edildiğinde boş dizi olarak dönecek
+      // Null değerleri temizle
+      if (Array.isArray(processedImages)) {
+        processedImages = processedImages.filter(img => img !== null && img !== 'null' && img !== '');
+      } else {
+        processedImages = [];
+      }
       
       // API'ye uygun formatta veriyi hazırla
       const apiFormData = {

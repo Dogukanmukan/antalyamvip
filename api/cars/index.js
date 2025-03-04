@@ -52,7 +52,9 @@ export default async function handler(req, res) {
       const formattedData = data.map(car => ({
         ...car,
         features: safeJsonParse(car.features, []),
-        images: safeJsonParse(car.images, [])
+        images: Array.isArray(car.images) 
+          ? car.images.filter(img => img !== null && img !== 'null') 
+          : []
       }));
 
       return successResponse(res, formattedData);
@@ -86,8 +88,11 @@ export default async function handler(req, res) {
         carData.features = JSON.stringify(carData.features);
       }
       
+      // images alanını temizle - null değerleri kaldır
       if (carData.images && Array.isArray(carData.images)) {
-        carData.images = JSON.stringify(carData.images);
+        carData.images = carData.images.filter(img => img !== null && img !== 'null' && img !== '');
+      } else {
+        carData.images = [];
       }
       
       // Varsayılan durum ekle
@@ -130,8 +135,11 @@ export default async function handler(req, res) {
         carData.features = JSON.stringify(carData.features);
       }
       
+      // images alanını temizle - null değerleri kaldır
       if (carData.images && Array.isArray(carData.images)) {
-        carData.images = JSON.stringify(carData.images);
+        carData.images = carData.images.filter(img => img !== null && img !== 'null' && img !== '');
+      } else {
+        carData.images = [];
       }
       
       // Aracı güncelle

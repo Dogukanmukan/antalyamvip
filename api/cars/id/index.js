@@ -43,7 +43,11 @@ export default async function handler(req, res) {
       const formattedData = {
         ...data,
         features: safeJsonParse(data.features, []),
-        images: safeJsonParse(data.images, [])
+        // images alanı PostgreSQL text[] tipinde, JavaScript'te dizi olarak geliyor
+        // Eğer null değerler varsa temizleyelim
+        images: Array.isArray(data.images) 
+          ? data.images.filter(img => img !== null && img !== 'null') 
+          : []
       };
 
       return successResponse(res, formattedData);
@@ -63,8 +67,11 @@ export default async function handler(req, res) {
         carData.features = JSON.stringify(carData.features);
       }
       
+      // images alanını temizle - null değerleri kaldır
       if (carData.images && Array.isArray(carData.images)) {
-        carData.images = JSON.stringify(carData.images);
+        carData.images = carData.images.filter(img => img !== null && img !== 'null' && img !== '');
+      } else {
+        carData.images = [];
       }
       
       // Aracı güncelle
@@ -87,7 +94,11 @@ export default async function handler(req, res) {
       const formattedData = {
         ...data[0],
         features: safeJsonParse(data[0].features, []),
-        images: safeJsonParse(data[0].images, [])
+        // images alanı PostgreSQL text[] tipinde, JavaScript'te dizi olarak geliyor
+        // Eğer null değerler varsa temizleyelim
+        images: Array.isArray(data[0].images) 
+          ? data[0].images.filter(img => img !== null && img !== 'null') 
+          : []
       };
 
       return successResponse(res, formattedData, 'Car updated successfully');
