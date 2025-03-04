@@ -48,35 +48,33 @@ class ApiClient {
     try {
       const response: AxiosResponse = await this.client(config);
       
+      console.log('API Response:', response.data);
+      
       // API yanıtı farklı formatlarda olabilir
       // 1. { success: true, data: [...] } formatı
       // 2. { success: true, message: 'Success', data: [...] } formatı
       // 3. Doğrudan veri formatı
+      // 4. { data: [...] } formatı (Supabase)
       
       let result;
-      if (response.data && response.data.data !== undefined) {
+      if (response.data && response.data.success && response.data.data !== undefined) {
+        // Format: { success: true, data: [...] }
         result = response.data.data;
+      } else if (response.data && response.data.data !== undefined) {
+        // Format: { data: [...] } (Supabase)
+        result = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Format: Doğrudan dizi
+        result = response.data;
       } else {
+        // Diğer formatlar
         result = response.data;
       }
       
-      // Eğer dizi bekleniyorsa ve sonuç dizi değilse, boş dizi döndür
-      if (config.url?.includes('/cars') || config.url?.includes('/bookings')) {
-        if (!Array.isArray(result)) {
-          console.warn('API yanıtı dizi değil, boş dizi döndürülüyor:', result);
-          return [] as unknown as T;
-        }
-      }
-      
-      return result;
+      console.log('Processed API result:', result);
+      return result as T;
     } catch (error) {
       console.error('API request error:', error);
-      
-      // Hata durumunda, eğer dizi bekleniyorsa boş dizi döndür
-      if (config.url?.includes('/cars') || config.url?.includes('/bookings')) {
-        return [] as unknown as T;
-      }
-      
       throw error;
     }
   }

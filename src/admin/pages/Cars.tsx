@@ -70,15 +70,27 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       const response = await carsAPI.getAll();
       console.log('Cars API response:', response);
       
-      // API yanıtının dizi olup olmadığını kontrol et
-      const carsArray = Array.isArray(response) ? response : [];
-      console.log(`Processed ${carsArray.length} cars`);
+      // API yanıtının yapısını kontrol et
+      let carsArray = [];
+      
+      if (response && Array.isArray(response)) {
+        // Doğrudan dizi formatı
+        carsArray = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // { data: [...] } formatı
+        carsArray = response.data;
+      } else if (response && typeof response === 'object') {
+        // Tek bir nesne olabilir, dizi içine al
+        carsArray = [response];
+      }
+      
+      console.log(`Processed ${carsArray.length} cars:`, carsArray);
       
       setCars(carsArray);
       setFilteredCars(carsArray);
     } catch (err) {
-      setError('Araçlar yüklenirken bir hata oluştu.');
       console.error('Araçlar yüklenirken hata:', err);
+      setError('Araçlar yüklenirken bir hata oluştu.');
       // Hata durumunda boş dizi kullan
       setCars([]);
       setFilteredCars([]);
