@@ -86,16 +86,40 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       
       console.log(`Processed ${carsArray.length} cars:`, carsArray);
       
+      // İlk aracın tüm detaylarını konsola yazdır
+      if (carsArray.length > 0) {
+        console.log('İlk araç tüm detayları:', carsArray[0]);
+        console.log('İlk araç images alanı:', {
+          images: carsArray[0].images,
+          type: typeof carsArray[0].images,
+          isArray: Array.isArray(carsArray[0].images),
+          keys: carsArray[0].images ? Object.keys(carsArray[0].images) : 'yok'
+        });
+      }
+      
       // JSON string olarak gelen alanları parse et
       const processedCars = carsArray.map((car: any) => {
         // images alanını kontrol et ve parse et
         if (car.images && typeof car.images === 'string') {
           try {
-            car.images = JSON.parse(car.images);
+            // Boş string kontrolü
+            if (car.images.trim() === '') {
+              car.images = [];
+              console.log(`Araç ID ${car.id} için images boş string, boş dizi atandı`);
+            } else {
+              car.images = JSON.parse(car.images);
+              console.log(`Araç ID ${car.id} için images parse edildi:`, car.images);
+            }
           } catch (e) {
-            console.error('Error parsing car images:', e);
+            console.error(`Araç ID ${car.id} için images parse hatası:`, e);
             car.images = [];
           }
+        } else if (!car.images) {
+          // images alanı yoksa boş dizi ata
+          car.images = [];
+          console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+        } else {
+          console.log(`Araç ID ${car.id} için images alanı zaten bir dizi:`, car.images);
         }
         
         // features alanını kontrol et ve parse et
@@ -110,6 +134,18 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
         
         return car;
       });
+      
+      // İşlenmiş ilk aracın detaylarını konsola yazdır
+      if (processedCars.length > 0) {
+        console.log('İşlenmiş ilk araç detayları:', {
+          id: processedCars[0].id,
+          name: processedCars[0].name,
+          image: processedCars[0].image,
+          images: processedCars[0].images,
+          imagesType: processedCars[0].images ? typeof processedCars[0].images : 'undefined',
+          imagesIsArray: processedCars[0].images ? Array.isArray(processedCars[0].images) : false
+        });
+      }
       
       setCars(processedCars);
       setFilteredCars(processedCars);
@@ -135,11 +171,24 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
       // JSON string olarak gelen alanları parse et
       if (car.images && typeof car.images === 'string') {
         try {
-          car.images = JSON.parse(car.images);
+          // Boş string kontrolü
+          if (car.images.trim() === '') {
+            car.images = [];
+            console.log(`Araç ID ${car.id} için images boş string, boş dizi atandı`);
+          } else {
+            car.images = JSON.parse(car.images);
+            console.log(`Araç ID ${car.id} için images parse edildi:`, car.images);
+          }
         } catch (e) {
-          console.error('Error parsing car images:', e);
+          console.error(`Araç ID ${car.id} için images parse hatası:`, e);
           car.images = [];
         }
+      } else if (!car.images) {
+        // images alanı yoksa boş dizi ata
+        car.images = [];
+        console.log(`Araç ID ${car.id} için images alanı yok, boş dizi atandı`);
+      } else {
+        console.log(`Araç ID ${car.id} için images alanı zaten bir dizi:`, car.images);
       }
       
       if (car.features && typeof car.features === 'string') {
@@ -198,6 +247,9 @@ const Cars: React.FC<CarsProps> = ({ isAddMode, isEditMode }) => {
     setError('');
     
     try {
+      console.log('Form verisi (handleSubmitCar):', formData);
+      console.log('images tipi:', typeof formData.images, 'değeri:', formData.images);
+      
       if (isEditMode && currentCar) {
         // Araç güncelleme
         await carsAPI.update(currentCar.id, formData);

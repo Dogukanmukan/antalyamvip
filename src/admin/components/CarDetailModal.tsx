@@ -65,7 +65,7 @@ const CarDetailModal: React.FC<CarDetailModalProps> = ({ car, onClose }) => {
                     alt={car.name}
                     className="h-full w-full object-cover rounded-lg"
                   />
-                ) : car.images && car.images.length > 0 ? (
+                ) : car.images && Array.isArray(car.images) && car.images.length > 0 ? (
                   <img
                     src={car.images[0]}
                     alt={car.name}
@@ -77,7 +77,7 @@ const CarDetailModal: React.FC<CarDetailModalProps> = ({ car, onClose }) => {
               </div>
               
               {/* Galeri Resimleri */}
-              {car.images && car.images.length > 0 && (
+              {car.images && Array.isArray(car.images) && car.images.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-lg font-medium mb-2 dark:text-white">Galeri</h3>
                   <div className="flex flex-wrap gap-2">

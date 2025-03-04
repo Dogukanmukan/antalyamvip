@@ -338,10 +338,14 @@ const CarForm: React.FC<CarFormProps> = ({
             const results = await api.files.uploadMultipleFiles(Array.from(files), 'car-images');
             console.log('Dosyalar başarıyla yüklendi:', results);
             
-            setFormData(prev => ({
-              ...prev,
-              images: [...prev.images, ...results.map(r => r.url)]
-            }));
+            // Çoklu görsel yükleme durumunda, ana görsel alanını boşalt ve tüm görselleri images dizisine ekle
+            if (results.length > 0) {
+              setFormData(prev => ({
+                ...prev,
+                image: '', // Ana görsel alanını temizle
+                images: [...prev.images, ...results.map(r => r.url)]
+              }));
+            }
             
             if (errors.images) {
               setErrors(prev => ({ ...prev, images: '' }));
@@ -373,11 +377,14 @@ const CarForm: React.FC<CarFormProps> = ({
       
       console.log('Dosyalar başarıyla yüklendi:', results);
       
-      // Yüklenen dosyaların URL'lerini form verisine ekle
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...results.map(r => r.url)]
-      }));
+      // Çoklu görsel yükleme durumunda, ana görsel alanını boşalt ve tüm görselleri images dizisine ekle
+      if (results.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          image: '', // Ana görsel alanını temizle
+          images: [...prev.images, ...results.map(r => r.url)]
+        }));
+      }
       
       // Hata varsa temizle
       if (errors.images) {
@@ -424,6 +431,13 @@ const CarForm: React.FC<CarFormProps> = ({
       // Boş özellikleri filtrele
       const filteredFeatures = formData.features.filter(f => f.trim() !== '');
       
+      // Images alanını kontrol et
+      let processedImages = formData.images;
+      
+      // Eğer images boş bir dizi ise boş dizi olarak bırak
+      // Boş dizi olması durumunda API tarafında JSON.stringify([]) şeklinde kaydedilecek
+      // Bu da veritabanında "[]" olarak saklanacak ve parse edildiğinde boş dizi olarak dönecek
+      
       // API'ye uygun formatta veriyi hazırla
       const apiFormData = {
         name: formData.name,
@@ -437,10 +451,11 @@ const CarForm: React.FC<CarFormProps> = ({
         description: formData.description,
         features: filteredFeatures,
         image: formData.image,
-        images: formData.images
+        images: processedImages
       };
       
       console.log('Gönderilen form verisi:', apiFormData);
+      console.log('images tipi:', typeof apiFormData.images, 'değeri:', apiFormData.images);
       
       // Formu gönder
       onSubmit(apiFormData);
