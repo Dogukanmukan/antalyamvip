@@ -2,9 +2,6 @@
 import { supabase, setCorsHeaders, errorResponse, successResponse } from '../_lib/supabase.js';
 import jwt from 'jsonwebtoken';
 
-// Varsayılan JWT Secret (güvenlik için gerçek uygulamalarda çevre değişkeni kullanılmalıdır)
-const DEFAULT_JWT_SECRET = '/Of6UT0971EdZSnVm3rsD+JnHVoS4FflV1zgBH5rDClQChwkbs4UiS1gWYp++cXQ0DWVSvbzFWhCJ+ZocuiQfg==';
-
 export default async function handler(req, res) {
   // CORS başlıklarını ayarla
   setCorsHeaders(res);
@@ -14,6 +11,12 @@ export default async function handler(req, res) {
   console.log('Environment check - JWT_SECRET exists:', !!process.env.JWT_SECRET);
   console.log('Environment check - SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
   console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
+  // JWT_SECRET çevre değişkenini kontrol et
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET environment variable is not set!');
+    return errorResponse(res, 500, 'Server configuration error: JWT_SECRET is not set');
+  }
   
   // OPTIONS isteğini işle
   if (req.method === 'OPTIONS') {
@@ -62,10 +65,6 @@ export default async function handler(req, res) {
     const userRole = userData.app_metadata?.role || 'user';
     console.log('User role:', userRole);
     
-    // JWT token oluştur
-    const jwtSecret = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
-    console.log('Using JWT secret:', jwtSecret ? 'Secret is defined' : 'Secret is NOT defined');
-    
     try {
       console.log('Creating JWT token...');
       const token = jwt.sign(
@@ -74,7 +73,7 @@ export default async function handler(req, res) {
           email: userData.email,
           role: userRole
         },
-        jwtSecret,
+        process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
