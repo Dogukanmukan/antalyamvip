@@ -1,7 +1,7 @@
 import { authAPI as oldAuthAPI, bookingsAPI as oldBookingsAPI, carsAPI as oldCarsAPI, statsAPI as oldStatsAPI } from './api';
 import { authAPI as newAuthAPI, bookingsAPI as newBookingsAPI, carsAPI as newCarsAPI, statsAPI as newStatsAPI } from './api-supabase';
 import { settingsAPI as newSettingsAPI } from './api-supabase';
-import { convertOldBookingToSupabase, convertSupabaseBookingToOld, convertOldCarToSupabase, convertSupabaseCarToOld } from './migration-helper';
+import { convertSupabaseBookingToOld, convertOldCarToSupabase, convertSupabaseCarToOld } from './migration-helper';
 
 // Flag to control which API to use
 // Set this to false to use the old API
