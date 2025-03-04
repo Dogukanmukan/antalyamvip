@@ -141,9 +141,35 @@ export default async function handler(req, res) {
       const fileName = `${uuidv4()}${path.extname(file.originalFilename)}`;
       const filePath = `uploads/${fileName}`;
       
+      // Bucket adı
+      const bucketName = 'images';
+      
+      // Bucket'ın varlığını kontrol et
+      const { data: bucketData, error: bucketError } = await supabase.storage
+        .getBucket(bucketName);
+        
+      if (bucketError) {
+        console.log('Bucket not found, trying to create it...');
+        
+        // Bucket yoksa oluştur
+        const { data: newBucket, error: createError } = await supabase.storage
+          .createBucket(bucketName, {
+            public: true,
+            allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+            fileSizeLimit: 10 * 1024 * 1024 // 10MB
+          });
+          
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          return errorResponse(res, 500, 'Error creating storage bucket', createError.message);
+        }
+        
+        console.log('Bucket created successfully:', newBucket);
+      }
+      
       // Supabase Storage'a yükle
       const { data, error } = await supabase.storage
-        .from('public')
+        .from(bucketName)
         .upload(filePath, fileContent, {
           contentType: file.mimetype,
           upsert: false
@@ -156,7 +182,7 @@ export default async function handler(req, res) {
       
       // Dosya URL'sini al
       const { data: urlData } = supabase.storage
-        .from('public')
+        .from(bucketName)
         .getPublicUrl(filePath);
         
       // Dosya bilgilerini veritabanına kaydet
