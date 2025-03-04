@@ -304,7 +304,7 @@ const Dashboard: React.FC = () => {
         />
         <StatCard 
           title="Aylık Gelir" 
-          value={`₺${stats.monthlyRevenue.toLocaleString()}`} 
+          value={`₺${(stats.monthlyRevenue || 0).toLocaleString()}`} 
           icon={<TrendingUp size={24} className="text-amber-600 dark:text-amber-400" />}
           change={8}
           changeText="geçen aya göre"
