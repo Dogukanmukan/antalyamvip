@@ -410,7 +410,7 @@ export const settingsAPI = {
           contactPhone: '+90 555 123 4567'
         },
         appearance: {
-          theme: 'light',
+          theme: 'dark',
           primaryColor: '#F59E0B',
           logo: '/uploads/logo.png'
         },

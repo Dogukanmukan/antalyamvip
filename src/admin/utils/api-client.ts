@@ -261,6 +261,81 @@ class ApiClient {
     }
   }
   
+  // Çoklu dosya yükleme işlemi
+  async uploadMultipleFiles(files: File[], folder: string = 'uploads'): Promise<{ url: string; path: string }[]> {
+    console.log(`Uploading ${files.length} files to API:`, { 
+      fileNames: files.map(f => f.name), 
+      totalSize: files.reduce((acc, f) => acc + f.size, 0), 
+      folder 
+    });
+    
+    // Token'ı manuel olarak alıp headers'a ekleyelim
+    const token = localStorage.getItem('adminToken');
+    console.log('Authentication token present:', token ? 'Yes' : 'No');
+    
+    if (!token) {
+      console.error('No authentication token found');
+      throw new Error('Oturum açılmamış. Lütfen tekrar giriş yapın.');
+    }
+    
+    try {
+      // Her dosya için ayrı bir yükleme işlemi yap ve sonuçları topla
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', folder);
+        
+        const response = await this.client({
+          method: 'POST',
+          url: '/upload',
+          data: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+        
+        console.log(`File ${file.name} upload response:`, response.status, response.statusText);
+        
+        if (response.data && response.data.success && response.data.data) {
+          console.log(`File ${file.name} upload successful:`, response.data.data.url);
+          return {
+            url: response.data.data.url,
+            path: response.data.data.path
+          };
+        } else {
+          console.error(`Invalid response format for ${file.name}:`, response.data);
+          throw new Error(`Dosya ${file.name} için sunucudan geçersiz yanıt alındı`);
+        }
+      });
+      
+      // Tüm yükleme işlemlerinin tamamlanmasını bekle
+      const results = await Promise.all(uploadPromises);
+      console.log('All files uploaded successfully:', results);
+      return results;
+    } catch (error: any) {
+      console.error('Multiple file upload error:', error);
+      
+      // Axios hata yanıtını kontrol et
+      if (error.response) {
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+        
+        // 401 hatası için özel mesaj
+        if (error.response.status === 401) {
+          throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        }
+        
+        // Sunucu hata mesajını kullan
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Dosya yükleme hatası';
+        throw new Error(errorMessage);
+      }
+      
+      // Ağ hatası veya diğer hatalar
+      throw new Error(error.message || 'Dosya yüklenirken bir hata oluştu');
+    }
+  }
+  
   // Veritabanı başlatma işlemi (sadece admin)
   async initDatabase(seedData: boolean = false): Promise<any> {
     return this.request({

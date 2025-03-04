@@ -66,7 +66,7 @@ const Settings: React.FC = () => {
       contactPhone: ''
     },
     appearance: {
-      darkMode: false,
+      darkMode: true,
       primaryColor: '#f59e0b',
       language: 'tr'
     },
@@ -107,7 +107,7 @@ const Settings: React.FC = () => {
             contactPhone: '+90 555 123 4567'
           },
           appearance: {
-            darkMode: false,
+            darkMode: true,
             primaryColor: '#f59e0b',
             language: 'tr'
           },

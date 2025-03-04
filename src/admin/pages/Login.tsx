@@ -89,7 +89,7 @@ const Login: React.FC = () => {
     setError('');
     
     try {
-      console.log('Attempting login with:', { email });
+      console.log('Attempting login with Supabase Auth:', { email });
       
       // Supabase ile giriş yap
       const { data, error: authError } = await supabase.auth.signInWithPassword({

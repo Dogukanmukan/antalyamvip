@@ -143,6 +143,58 @@ const api = {
         return supabaseApi.fileAPI.uploadFile(file, folder);
       }
       return apiClient.uploadFile(file, folder);
+    },
+    
+    uploadMultipleFiles: async (files: File[], folder: string = 'uploads'): Promise<Array<{ url: string; path: string }>> => {
+      console.log(`${files.length} dosya yükleniyor...`);
+      
+      // Token kontrolü
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        throw new Error('Oturum açılmamış. Lütfen tekrar giriş yapın.');
+      }
+      
+      // Tüm dosyaları paralel olarak yükle
+      const uploadPromises = files.map(async (file) => {
+        try {
+          // Dosya adını oluştur
+          const timestamp = new Date().getTime();
+          const randomString = Math.random().toString(36).substring(2, 8);
+          const fileName = `${timestamp}-${randomString}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+          
+          // FormData oluştur
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('folder', folder);
+          formData.append('fileName', fileName);
+          
+          // API'ye gönder
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Dosya yükleme hatası: ${errorText}`);
+          }
+          
+          const data = await response.json();
+          return {
+            url: data.url,
+            path: data.path
+          };
+        } catch (error) {
+          console.error(`Dosya yükleme hatası (${file.name}):`, error);
+          throw error;
+        }
+      });
+      
+      // Tüm yüklemelerin tamamlanmasını bekle
+      return Promise.all(uploadPromises);
     }
   },
   

@@ -13,35 +13,59 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Supabase oturumunu kontrol et
-        const { data, error } = await supabase.auth.getSession();
+        console.log('Checking authentication...');
         
-        if (error) {
-          console.error('Auth session error:', error);
-          navigate('/admin/login');
-          return;
+        // Önce localStorage'daki token'ı kontrol et
+        const adminToken = localStorage.getItem('adminToken');
+        const adminUser = localStorage.getItem('adminUser');
+        
+        console.log('Local storage check:', { 
+          tokenExists: !!adminToken, 
+          userExists: !!adminUser 
+        });
+        
+        if (!adminToken || !adminUser) {
+          console.log('No admin token or user in localStorage, checking Supabase session');
+          
+          // Supabase oturumunu kontrol et
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Auth session error:', error);
+            navigate('/admin/login');
+            return;
+          }
+          
+          if (!data.session) {
+            console.log('No active Supabase session found, redirecting to login');
+            navigate('/admin/login');
+            return;
+          }
+          
+          // Supabase oturumu var ama localStorage'da token yok, token'ı localStorage'a kaydet
+          console.log('Supabase session found, saving token to localStorage');
+          localStorage.setItem('adminToken', data.session.access_token);
+          
+          // Kullanıcı bilgilerini al ve localStorage'a kaydet
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
+            
+          if (!userError && userData) {
+            localStorage.setItem('adminUser', JSON.stringify(userData));
+          }
         }
         
-        if (!data.session) {
-          console.log('No active session found, redirecting to login');
-          navigate('/admin/login');
-          return;
-        }
-        
-        // Kullanıcı rolünü kontrol et (opsiyonel)
-        const userRole = data.session.user.app_metadata?.role || 'user';
-        console.log('User authenticated with role:', userRole);
-        
-        // Admin rolü kontrolü (opsiyonel)
-        // if (userRole !== 'admin') {
-        //   console.log('User does not have admin role, redirecting to login');
-        //   navigate('/admin/login');
-        //   return;
-        // }
-        
+        // Token var, kullanıcı doğrulanmış kabul et
+        console.log('Authentication successful');
         setLoading(false);
       } catch (error) {
         console.error('Auth check error:', error);
+        // Hata durumunda login sayfasına yönlendir
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         navigate('/admin/login');
       }
     };
@@ -53,6 +77,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       console.log('Auth state changed:', event);
       
       if (event === 'SIGNED_OUT' || !session) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         navigate('/admin/login');
       }
     });

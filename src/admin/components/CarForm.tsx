@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Save, Upload } from 'lucide-react';
 import api from '../utils/api-compat';
+import { supabase } from '../utils/supabase';
 
 interface CarFormProps {
   initialData?: any;
@@ -26,11 +27,14 @@ const CarForm: React.FC<CarFormProps> = ({
     status: 'active',
     description: '',
     features: [''],
-    image: ''
+    image: '',
+    images: [] as string[]
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string>('');
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Form ilk yüklendiğinde veya initialData değiştiğinde formu doldur
   useEffect(() => {
@@ -46,11 +50,16 @@ const CarForm: React.FC<CarFormProps> = ({
         status: initialData.status || 'active',
         description: initialData.description || '',
         features: initialData.features?.length ? initialData.features : [''],
-        image: initialData.image || ''
+        image: initialData.image || '',
+        images: initialData.images || []
       });
       
       if (initialData.image) {
         setPreviewImage(initialData.image);
+      }
+      
+      if (initialData.images) {
+        setPreviewImages(initialData.images);
       }
     }
   }, [initialData]);
@@ -158,8 +167,43 @@ const CarForm: React.FC<CarFormProps> = ({
         
         // Kullanıcının oturum açtığını kontrol et
         const token = localStorage.getItem('adminToken');
+        const user = localStorage.getItem('adminUser');
+        
+        console.log('Oturum kontrolü:', { 
+          tokenVar: !!token, 
+          userVar: !!user,
+          tokenLength: token ? token.length : 0
+        });
+        
         if (!token) {
           console.error('Oturum açılmamış, resim yüklenemez');
+          
+          // Supabase oturumunu kontrol et
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData && sessionData.session) {
+              console.log('Supabase oturumu bulundu, token yenileniyor');
+              localStorage.setItem('adminToken', sessionData.session.access_token);
+              
+              // Yeni token ile devam et
+              const result = await api.files.uploadFile(file, 'car-images');
+              console.log('Dosya yükleme başarılı:', result);
+              
+              setFormData(prev => ({
+                ...prev,
+                image: result.url
+              }));
+              
+              if (errors.image) {
+                setErrors(prev => ({ ...prev, image: '' }));
+              }
+              
+              return;
+            }
+          } catch (sessionError) {
+            console.error('Supabase oturum kontrolü hatası:', sessionError);
+          }
+          
           setErrors(prev => ({
             ...prev,
             image: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
@@ -217,6 +261,130 @@ const CarForm: React.FC<CarFormProps> = ({
     }
   };
   
+  // Çoklu resim yükleme
+  const handleMultipleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) return;
+    
+    // Dosya sayısı kontrolü (maksimum 10 resim)
+    if (files.length > 10) {
+      setErrors(prev => ({
+        ...prev,
+        images: 'En fazla 10 resim yükleyebilirsiniz.'
+      }));
+      return;
+    }
+    
+    // Dosya boyutu ve tip kontrolü
+    const invalidFiles = Array.from(files).filter(file => {
+      // Boyut kontrolü (5MB)
+      if (file.size > 5 * 1024 * 1024) return true;
+      
+      // Tip kontrolü
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return true;
+      
+      return false;
+    });
+    
+    if (invalidFiles.length > 0) {
+      setErrors(prev => ({
+        ...prev,
+        images: 'Bazı dosyalar geçersiz. Sadece 5MB\'dan küçük JPEG, PNG ve WEBP formatları desteklenmektedir.'
+      }));
+      return;
+    }
+    
+    // Önizleme için URL'ler oluştur
+    const previews: string[] = [];
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        previews.push(reader.result as string);
+        if (previews.length === files.length) {
+          setPreviewImages([...previews]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    try {
+      console.log('Çoklu resim yükleme başlatılıyor:', Array.from(files).map(f => f.name).join(', '));
+      setIsUploading(true);
+      
+      // Kullanıcının oturum açtığını kontrol et
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        console.error('Oturum açılmamış, resimler yüklenemez');
+        
+        // Supabase oturumunu kontrol et
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData && sessionData.session) {
+            console.log('Supabase oturumu bulundu, token yenileniyor');
+            localStorage.setItem('adminToken', sessionData.session.access_token);
+            
+            // Yeni token ile devam et
+            const results = await api.files.uploadMultipleFiles(Array.from(files), 'car-images');
+            console.log('Dosyalar başarıyla yüklendi:', results);
+            
+            setFormData(prev => ({
+              ...prev,
+              images: results.map(r => r.url)
+            }));
+            
+            if (errors.images) {
+              setErrors(prev => ({ ...prev, images: '' }));
+            }
+            
+            setIsUploading(false);
+            return;
+          }
+        } catch (sessionError) {
+          console.error('Supabase oturum kontrolü hatası:', sessionError);
+        }
+        
+        setErrors(prev => ({
+          ...prev,
+          images: 'Oturum açılmamış. Lütfen tekrar giriş yapın.'
+        }));
+        
+        // Kullanıcıyı login sayfasına yönlendir
+        setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 2000);
+        
+        setIsUploading(false);
+        return;
+      }
+      
+      // Dosyaları yükle
+      const results = await api.files.uploadMultipleFiles(Array.from(files), 'car-images');
+      
+      console.log('Dosyalar başarıyla yüklendi:', results);
+      
+      // Yüklenen dosyaların URL'lerini form verisine ekle
+      setFormData(prev => ({
+        ...prev,
+        images: results.map(r => r.url)
+      }));
+      
+      // Hata varsa temizle
+      if (errors.images) {
+        setErrors(prev => ({ ...prev, images: '' }));
+      }
+    } catch (error: any) {
+      console.error('Resim yükleme hatası:', error);
+      setErrors(prev => ({
+        ...prev,
+        images: error.message || 'Resimler yüklenirken bir hata oluştu.'
+      }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
   // Formu doğrula
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -259,7 +427,8 @@ const CarForm: React.FC<CarFormProps> = ({
         status: formData.status,
         description: formData.description,
         features: filteredFeatures,
-        image: formData.image
+        image: formData.image,
+        images: formData.images
       };
       
       console.log('Gönderilen form verisi:', apiFormData);
@@ -485,57 +654,111 @@ const CarForm: React.FC<CarFormProps> = ({
         </div>
       </div>
       
-      {/* Resim Yükleme */}
-      <div className="bg-white rounded-lg shadow-md p-6 dark:bg-gray-800">
-        <h3 className="text-lg font-medium mb-4 dark:text-white">Araç Görseli</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Görsel Yükle
-            </label>
-            <div className="flex items-center justify-center w-full">
-              <label
-                htmlFor="image-upload"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+      {/* Tek Resim Yükleme */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Ana Resim
+        </label>
+        <div className="mt-1 flex items-center">
+          {previewImage ? (
+            <div className="relative">
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="h-32 w-32 object-cover rounded-md"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setPreviewImage('');
+                  setFormData(prev => ({ ...prev, image: '' }));
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
               >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-8 h-8 mb-3 text-gray-500 dark:text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold">Yüklemek için tıklayın</span> veya sürükleyip bırakın
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    PNG, JPG veya WEBP (Maks. 5MB)
-                  </p>
-                </div>
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
+              <label className="cursor-pointer text-center p-2">
+                <Upload className="h-6 w-6 text-gray-400 mx-auto" />
+                <span className="mt-2 block text-sm text-gray-400">Resim Yükle</span>
                 <input
-                  id="image-upload"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageChange}
                 />
               </label>
             </div>
-            {errors.image && <p className="mt-1 text-sm text-red-500">{errors.image}</p>}
+          )}
+          {errors.image && (
+            <p className="mt-1 text-sm text-red-600">{errors.image}</p>
+          )}
+        </div>
+      </div>
+      
+      {/* Çoklu Resim Yükleme */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Galeri Resimleri (Maksimum 10)
+        </label>
+        <div className="mt-1">
+          <div className="flex flex-wrap gap-2">
+            {/* Önizleme resimleri */}
+            {previewImages.map((preview, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="h-24 w-24 object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPreviews = [...previewImages];
+                    newPreviews.splice(index, 1);
+                    setPreviewImages(newPreviews);
+                    
+                    const newImages = [...formData.images];
+                    newImages.splice(index, 1);
+                    setFormData(prev => ({ ...prev, images: newImages }));
+                  }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            
+            {/* Yükleme butonu */}
+            {previewImages.length < 10 && (
+              <div className="h-24 w-24 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
+                <label className="cursor-pointer text-center p-2">
+                  <Upload className="h-5 w-5 text-gray-400 mx-auto" />
+                  <span className="mt-1 block text-xs text-gray-400">Resimler Ekle</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleMultipleImageChange}
+                    disabled={isUploading}
+                  />
+                </label>
+              </div>
+            )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Önizleme
-            </label>
-            <div className="border border-gray-300 rounded-lg h-32 flex items-center justify-center overflow-hidden dark:border-gray-600">
-              {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt="Araç önizleme"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">Görsel yüklenmedi</p>
-              )}
+          {errors.images && (
+            <p className="mt-1 text-sm text-red-600">{errors.images}</p>
+          )}
+          
+          {isUploading && (
+            <div className="mt-2 text-sm text-amber-600">
+              Resimler yükleniyor... Lütfen bekleyin.
             </div>
-          </div>
+          )}
         </div>
       </div>
       
