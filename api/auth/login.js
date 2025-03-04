@@ -43,20 +43,19 @@ export default async function handler(req, res) {
 
     console.log('Supabase authentication successful, fetching user data...');
     
-    // Kullanıcı bilgilerini al
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, email, username, role')
-      .eq('email', email)
-      .single();
-
-    if (userError) {
-      console.error('Supabase user fetch error:', userError);
-      return errorResponse(res, 500, 'Failed to fetch user data', userError.message);
+    // Doğrudan auth.users tablosundan kullanıcı bilgilerini al
+    const { data: authUser } = await supabase.auth.getUser();
+    
+    if (!authUser || !authUser.user) {
+      console.error('Failed to get authenticated user data');
+      return errorResponse(res, 500, 'Failed to fetch user data');
     }
-
-    console.log('User data fetched successfully:', userData);
-
+    
+    console.log('User data fetched successfully:', authUser.user);
+    
+    // Kullanıcı rolünü al
+    const userRole = authUser.user.app_metadata?.role || 'user';
+    
     // JWT token oluştur
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -67,9 +66,9 @@ export default async function handler(req, res) {
     console.log('Creating JWT token...');
     const token = jwt.sign(
       { 
-        id: userData.id, 
-        email: userData.email,
-        role: userData.role || 'user'
+        id: authUser.user.id, 
+        email: authUser.user.email,
+        role: userRole
       },
       jwtSecret,
       { expiresIn: '24h' }
@@ -79,10 +78,10 @@ export default async function handler(req, res) {
     // Başarılı yanıt
     return successResponse(res, {
       user: {
-        id: userData.id,
-        email: userData.email,
-        username: userData.username,
-        role: userData.role || 'user'
+        id: authUser.user.id,
+        email: authUser.user.email,
+        username: authUser.user.email.split('@')[0], // E-postadan basit bir kullanıcı adı oluştur
+        role: userRole
       },
       token
     });
